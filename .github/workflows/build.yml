@@ -39,8 +39,8 @@ jobs:
         shell: pwsh
         run: |
           $editions = @(
-            @{ Name = "full"; Dir = "WingLightPDF_綠色免安裝版" },
-            @{ Name = "lite"; Dir = "WingLightPDF_綠色免安裝版_輕量版" }
+            @{ Name = "full"; Label = "Full"; Dir = "WingLightPDF_綠色免安裝版" },
+            @{ Name = "lite"; Label = "Lite"; Dir = "WingLightPDF_綠色免安裝版_輕量版" }
           )
           foreach ($ed in $editions) {
             $releaseDir = $ed.Dir
@@ -70,22 +70,29 @@ jobs:
             Copy-Item "core\*.py" -Destination "$releaseDir\source_code\core\" -Force
             Copy-Item "ui\*.py" -Destination "$releaseDir\source_code\ui\" -Force
 
-            Compress-Archive -Path "$releaseDir\*" -DestinationPath "$releaseDir.zip" -Force
+            # Release 附件檔名必須是英文，GitHub 會移除非 ASCII 字元
+            Compress-Archive -Path "$releaseDir\*" -DestinationPath "WingLightPDF-$env:GITHUB_REF_NAME-$($ed.Label).zip" -Force
           }
 
       - name: 6. Upload Artifacts (上傳雲端編譯成品)
         uses: actions/upload-artifact@v4
         with:
           name: WingLightPDF_綠色免安裝版
-          path: |
-            WingLightPDF_綠色免安裝版.zip
-            WingLightPDF_綠色免安裝版_輕量版.zip
+          path: WingLightPDF-*.zip
+
+      - name: 7a. Remove Stale Release Assets (重跑同一版本時先刪除 Release 上的舊附件)
+        if: startsWith(github.ref, 'refs/tags/')
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $names = gh release view $env:GITHUB_REF_NAME --json assets --jq '.assets[].name' 2>$null
+          foreach ($n in $names) { if ($n) { gh release delete-asset $env:GITHUB_REF_NAME $n --yes } }
+          exit 0
 
       - name: 7. Publish to GitHub Releases (自動發佈至 GitHub Releases)
         if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
-          files: |
-            WingLightPDF_綠色免安裝版.zip
-            WingLightPDF_綠色免安裝版_輕量版.zip
+          files: WingLightPDF-*.zip
           generate_release_notes: true

@@ -46,8 +46,8 @@
 1. 前往本頁面右側的 **[Releases（發行版本）](../../releases)** 專區，依需求下載其中一個版本（兩版功能相同，只差 OCR 引擎）：
    | 版本 | 下載大小 | OCR 引擎 | 適合 |
    |---|---|---|---|
-   | `WingLightPDF_綠色免安裝版.zip`（完整版） | 約 135 MB | RapidOCR PP-OCRv6 | 常需辨識掃描的數字表格、工程規範 |
-   | `WingLightPDF_綠色免安裝版_輕量版.zip` | 約 62 MB | Windows 內建 OCR | 一般公文與內文；密集數字表格容易漏字 |
+   | `WingLightPDF-版本-Full.zip`（完整版） | 約 135 MB | RapidOCR PP-OCRv6 | 常需辨識掃描的數字表格、工程規範 |
+   | `WingLightPDF-版本-Lite.zip`（輕量版） | 約 62 MB | Windows 內建 OCR | 一般公文與內文；密集數字表格容易漏字 |
 2. 解壓縮至電腦任意位置，直接雙擊資料夾內的 **`WingLightPDF.exe`** 即可開啟程式。
 3. **📌 設為電腦預設 PDF 軟體（選用）：**
    - 打開 `WingLightPDF.exe` 後，點擊右上角工具列的 **「📌 設為預設PDF」** 按鈕。
@@ -99,8 +99,8 @@ python main.py
 ### 📥 Quick Start (For End Users)
 
 1. Go to the **[Releases](../../releases)** section and download one edition (identical features, different OCR engine):
-   - `WingLightPDF_綠色免安裝版.zip` — Full (~135 MB): bundled RapidOCR PP-OCRv6, accurate on Traditional Chinese and dense numeric tables.
-   - `WingLightPDF_綠色免安裝版_輕量版.zip` — Lite (~62 MB): uses the built-in Windows OCR; fast and accurate on regular text, weaker on dense numeric tables.
+   - `WingLightPDF-<version>-Full.zip` — Full (~135 MB): bundled RapidOCR PP-OCRv6, accurate on Traditional Chinese and dense numeric tables.
+   - `WingLightPDF-<version>-Lite.zip` — Lite (~62 MB): uses the built-in Windows OCR; fast and accurate on regular text, weaker on dense numeric tables.
 2. Extract the folder anywhere on your Windows 10/11 PC and double-click **`WingLightPDF.exe`**.
 3. **Set as Default PDF Viewer (Optional):** Click the **`📌 設為預設PDF`** button on the top toolbar, then right-click any `.pdf` file ➔ *Open with* ➔ *Choose another app* ➔ select **WingLightPDF** and click **Always**.
 
