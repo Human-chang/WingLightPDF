@@ -1,0 +1,15 @@
+PySide6-Essentials>=6.6.0
+PyMuPDF>=1.24.0,<2
+Pillow>=10.2.0
+numpy>=1.26.0
+# 完整版 OCR：RapidOCR PP-OCRv6
+rapidocr>=3.10,<4
+onnxruntime>=1.18
+# 輕量版 OCR：Windows 內建 OCR
+winrt-runtime>=3.0; sys_platform == "win32"
+winrt-Windows.Media.Ocr>=3.0; sys_platform == "win32"
+winrt-Windows.Globalization>=3.0; sys_platform == "win32"
+winrt-Windows.Graphics.Imaging>=3.0; sys_platform == "win32"
+winrt-Windows.Storage.Streams>=3.0; sys_platform == "win32"
+winrt-Windows.Foundation>=3.0; sys_platform == "win32"
+winrt-Windows.Foundation.Collections>=3.0; sys_platform == "win32"

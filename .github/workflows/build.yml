@@ -1,0 +1,91 @@
+name: Build and Release WingLightPDF Portable
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+
+    steps:
+      - name: 1. Checkout Source Code (檢出公開原始碼)
+        uses: actions/checkout@v4
+
+      - name: 2. Set up Python 3.14 (設定 Python 環境，與本機打包版本一致)
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.14'
+          cache: 'pip'
+
+      - name: 3. Install Dependencies & PyInstaller (安裝依賴套件)
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pyinstaller
+
+      - name: 4. Build Native Splash Launcher (編譯極速啟動器)
+        shell: pwsh
+        run: |
+          $csc = "C:\Windows\Microsoft.NET\Framework64\v4.0.30319\csc.exe"
+          & $csc /nologo /target:winexe /win32icon:"assets\app_icon.ico" /out:"WingLightPDF.exe" /r:System.dll,System.Drawing.dll,System.Windows.Forms.dll "assets\launcher.cs"
+
+      - name: 5. Build, Self-Test & Package Full / Lite Editions (編譯、自我測試並封裝完整版與輕量版)
+        shell: pwsh
+        run: |
+          $editions = @(
+            @{ Name = "full"; Dir = "WingLightPDF_綠色免安裝版" },
+            @{ Name = "lite"; Dir = "WingLightPDF_綠色免安裝版_輕量版" }
+          )
+          foreach ($ed in $editions) {
+            $releaseDir = $ed.Dir
+            Remove-Item "_dist_tmp", "build_tmp" -Recurse -Force -ErrorAction SilentlyContinue
+            pyinstaller --noconfirm --clean --log-level WARN --distpath "_dist_tmp" --workpath "build_tmp" WingLightPDF_Core.spec -- --edition $ed.Name
+            if ($LASTEXITCODE -ne 0) { throw "PyInstaller failed for $($ed.Name)" }
+
+            $result = Join-Path (Get-Location).Path "selftest_$($ed.Name).json"
+            $p = Start-Process -FilePath "_dist_tmp\WingLightPDF_Core\WingLightPDF_Core.exe" -ArgumentList "--self-test", "`"$result`"" -Wait -PassThru
+            Get-Content $result -Encoding utf8
+            if ($p.ExitCode -ne 0) { throw "Self-test failed for $($ed.Name) with exit code $($p.ExitCode)" }
+
+            for ($i = 0; $i -lt 15; $i++) {
+              try { Move-Item "_dist_tmp\WingLightPDF_Core" $releaseDir -ErrorAction Stop; break }
+              catch { if ($i -eq 14) { throw }; Start-Sleep -Seconds 1 }  # 自我測試剛結束時檔案可能被短暫鎖定
+            }
+            Move-Item "$releaseDir\WingLightPDF_Core.exe" "$releaseDir\WingLightPDF_Core.bin" -Force
+            Copy-Item "WingLightPDF.exe", "README_使用說明.txt" -Destination "$releaseDir\" -Force
+
+            New-Item -ItemType Directory -Force -Path "$releaseDir\assets" | Out-Null
+            Copy-Item "assets\*" -Destination "$releaseDir\assets\" -Force
+
+            New-Item -ItemType Directory -Force -Path "$releaseDir\stamps" | Out-Null
+            New-Item -ItemType Directory -Force -Path "$releaseDir\source_code\core" | Out-Null
+            New-Item -ItemType Directory -Force -Path "$releaseDir\source_code\ui" | Out-Null
+            Copy-Item "main.py", "register_default.py", "WingLightPDF_Core.spec", "README.md", "LICENSE", "requirements.txt" -Destination "$releaseDir\source_code\" -Force
+            Copy-Item "core\*.py" -Destination "$releaseDir\source_code\core\" -Force
+            Copy-Item "ui\*.py" -Destination "$releaseDir\source_code\ui\" -Force
+
+            Compress-Archive -Path "$releaseDir\*" -DestinationPath "$releaseDir.zip" -Force
+          }
+
+      - name: 6. Upload Artifacts (上傳雲端編譯成品)
+        uses: actions/upload-artifact@v4
+        with:
+          name: WingLightPDF_綠色免安裝版
+          path: |
+            WingLightPDF_綠色免安裝版.zip
+            WingLightPDF_綠色免安裝版_輕量版.zip
+
+      - name: 7. Publish to GitHub Releases (自動發佈至 GitHub Releases)
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            WingLightPDF_綠色免安裝版.zip
+            WingLightPDF_綠色免安裝版_輕量版.zip
+          generate_release_notes: true

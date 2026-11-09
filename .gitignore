@@ -1,0 +1,33 @@
+# Python Bytecode & Virtual Environments
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+.venv/
+env/
+
+# PyInstaller & Packaging Build Artifacts
+build/
+build_tmp/
+dist/
+_dist_tmp/
+*.spec
+!WingLightPDF_Core.spec
+FastPDF_綠色免安裝版/
+WingLightPDF_綠色免安裝版/
+WingLightPDF_綠色免安裝版_輕量版/
+*.zip
+*.bak
+
+# Local Marketing / Scratch Notes & Personal Stamps
+帳號經營/
+和 Gemini 的對話.md
+專案交接文件_HANDOFF.md
+FastPDF.exe
+WingLightPDF.exe
+re.txt
+stamps/*.png
+*.pdf
+*.log
+.DS_Store
+Thumbs.db
