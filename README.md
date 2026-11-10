@@ -33,7 +33,7 @@
 | 功能分類 | 實戰細節與解決痛點 |
 | :--- | :--- |
 | **⚡ 極速檢視與護眼模式** | • 毫秒級開啟大檔案、支援 `Ctrl+滾輪` 縮放、手型平移<br>• **深色反相護眼模式**：一鍵轉為黑底白線（類似 CAD 介面），長時間審閱工程圖紙與長文不傷眼 |
-| **🗂️ 多PDF同視窗分頁 & 自由拖拉** | • **同視窗多分頁／多視窗雙棲**：可將多個 PDF 顯示於同一視窗分頁列，0 延遲切換<br>• **像 Chrome 一樣自由拆分與合併**：按住分頁往視窗外拉即可**拆成兩個獨立視窗**；把 A 視窗分頁拖進 B 視窗即可**無損合併為一個視窗** |
+| **🗂️ 多PDF同視窗分頁 & 自由拖拉** | • **同視窗多分頁／多視窗雙棲**：可將多個 PDF 顯示於同一視窗分頁列，0 延遲切換<br>• **已開著時再開 PDF 直接加到分頁**：在檔案總管雙擊 PDF 時交給已開著的程式，約 0.1 秒出現在分頁裡（從頭啟動要 3~5 秒），重複的檔案直接切到原分頁<br>• **像 Chrome 一樣自由拆分與合併**：按住分頁往視窗外拉即可**拆成兩個獨立視窗**；把 A 視窗分頁拖進 B 視窗即可**無損合併為一個視窗** |
 | **📄 彈性縮圖列與跨檔管理** | • 左側縮圖列支援**拉窄成單欄**或**拉寬自動多排並排網格**<br>• 支援 `Ctrl` / `Shift` 多頁滑鼠拖曳排序、**跨分頁／跨視窗互拖頁面插入**，或從檔案總管直接把外部 PDF 拖進縮圖列任意位置合併<br>• 一鍵旋轉、刪除、擷取頁面、多檔合併與拆分、批次頁碼與浮水印 |
 | **✂️ 600 DPI 高解析截圖去背** | • 拒絕螢幕像素模糊截圖！直接從 PDF 底層向量以 **300~600 DPI** 重新渲染局部圖面，貼入 Word／簡報極致銳利<br>• 支援**「一鍵去背透明 PNG」**與**「去背 + 線條加深」**，貼上表格或有色背景不遮擋 |
 | **💮 標註與常用圖章/簽名匣** | • 新增繁體中文文字（自動內嵌系統字型，存檔絕不變亂碼或空白框）、插入圖片<br>• 內建**「核准、已審閱、機密、今日日期章」**，並支援匯入簽名照片**自動白底去背**收藏於 `stamps\` 資料夾隨時取用 |
@@ -88,7 +88,7 @@ python main.py
 | Category | Capabilities |
 | :--- | :--- |
 | **⚡ Instant Viewing & Eye Care** | • Millisecond startup & rendering, smooth `Ctrl+Wheel` zoom, pan tool<br>• **CAD-Style Dark Invert Mode**: One-click dark background with crisp white lines to reduce eye strain during long blueprint or document reviews |
-| **🗂️ Chrome-Style Multi-Tabs & Tear-Off Windows** | • **Multi-Tab Workspace**: Open multiple PDFs in tabs within a single window with zero-latency switching<br>• **Drag-Out to Split / Drag-In to Merge**: Drag any tab out of the tab bar to detach it into a separate window, or drag a tab from one window into another to merge them seamlessly |
+| **🗂️ Chrome-Style Multi-Tabs & Tear-Off Windows** | • **Multi-Tab Workspace**: Open multiple PDFs in tabs within a single window with zero-latency switching<br>• **Single Instance**: Opening a PDF from Explorer while WingLightPDF is running adds it as a tab in about 0.1 s instead of a 3–5 s cold start; files already open just switch to their tab<br>• **Drag-Out to Split / Drag-In to Merge**: Drag any tab out of the tab bar to detach it into a separate window, or drag a tab from one window into another to merge them seamlessly |
 | **📄 Responsive Thumbnail Grid & Page Dragging** | • Shrink the left thumbnail panel to a compact **single-column strip**, or widen it to automatically reflow into a **multi-column grid**<br>• Multi-page (`Ctrl` / `Shift`) drag-and-drop reordering, **cross-tab / cross-window page dragging**, and direct external `.pdf` file dropping<br>• Rotate, delete, extract pages, merge multiple PDFs, split documents, and batch-apply page numbers or watermarks |
 | **✂️ 600 DPI Vector Re-Rendered Clipping & Auto-Cutout** | • Say goodbye to blurry screen captures: re-renders selected regions directly from PDF vector data at **300–600 DPI**<br>• One-click **Transparent Background PNG** and **Line Darkening/Enhancement** for crystal-clear pasting into Word or PowerPoint |
 | **💮 Annotations & Stamp / Signature Box** | • Insert CJK/Unicode text (with automatic system font embedding so saved PDFs never show garbled characters) and images<br>• Built-in dynamic date & approval stamps, plus one-click **automatic white-background removal** for imported handwritten signatures |

@@ -3,12 +3,16 @@ using System.Diagnostics;
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.IO;
+using System.IO.Pipes;
+using System.Runtime.InteropServices;
+using System.Text;
+using System.Threading;
 using System.Windows.Forms;
 
 public class SplashForm : Form
 {
-    private Timer animTimer;
-    private Timer pollTimer;
+    private System.Windows.Forms.Timer animTimer;
+    private System.Windows.Forms.Timer pollTimer;
     private Process childProc;
     private int barOffset = 0;
     private int elapsedTicks = 0;
@@ -31,7 +35,7 @@ public class SplashForm : Form
         }
         catch { }
 
-        animTimer = new Timer();
+        animTimer = new System.Windows.Forms.Timer();
         animTimer.Interval = 25;
         animTimer.Tick += (s, e) =>
         {
@@ -105,7 +109,7 @@ public class SplashForm : Form
             return;
         }
 
-        pollTimer = new Timer();
+        pollTimer = new System.Windows.Forms.Timer();
         pollTimer.Interval = 50;
         pollTimer.Tick += (s, e) =>
         {
@@ -203,9 +207,77 @@ public class SplashForm : Form
         g.ResetClip();
     }
 
+    // ---- 單一執行個體：已經有 WingLightPDF 在執行時，把檔案交給它開在分頁（見 core/single_instance.py）----
+
+    private const string MutexName = "Local\\WingLightPDF.Primary";
+
+    [DllImport("user32.dll")]
+    private static extern bool AllowSetForegroundWindow(int dwProcessId);
+
+    private static string JsonString(string s)
+    {
+        StringBuilder sb = new StringBuilder("\"");
+        foreach (char c in s)
+        {
+            if (c == '"') sb.Append("\\\"");
+            else if (c == '\\') sb.Append("\\\\");
+            else if (c < 0x20) sb.AppendFormat("\\u{0:x4}", (int)c);
+            else sb.Append(c);
+        }
+        return sb.Append('"').ToString();
+    }
+
+    private static bool TrySendToRunningInstance(string[] args)
+    {
+        foreach (string a in args)
+        {
+            if (a.StartsWith("-")) return false;  // --self-test 等參數照舊啟動新的核心
+        }
+        try
+        {
+            using (Mutex.OpenExisting(MutexName)) { }
+        }
+        catch
+        {
+            return false;  // 沒有主程式在執行
+        }
+        try
+        {
+            AllowSetForegroundWindow(-1);  // 讓主程式可以把視窗帶到最前面
+            StringBuilder json = new StringBuilder("{\"files\": [");
+            for (int i = 0; i < args.Length; i++)
+            {
+                if (i > 0) json.Append(", ");
+                json.Append(JsonString(Path.GetFullPath(args[i])));
+            }
+            json.Append("]}");
+            byte[] data = Encoding.UTF8.GetBytes(json.ToString());
+
+            string pipeName = "WingLightPDF-s" + Process.GetCurrentProcess().SessionId;
+            using (NamedPipeClientStream pipe = new NamedPipeClientStream(".", pipeName, PipeDirection.InOut))
+            {
+                pipe.Connect(15000);  // 主程式可能剛啟動，還沒開始接收
+                pipe.ReadMode = PipeTransmissionMode.Message;
+                pipe.Write(data, 0, data.Length);
+                pipe.Flush();
+                byte[] ack = new byte[16];
+                IAsyncResult r = pipe.BeginRead(ack, 0, ack.Length, null, null);
+                if (!r.AsyncWaitHandle.WaitOne(5000)) return false;
+                int n = pipe.EndRead(r);
+                return n >= 2 && ack[0] == (byte)'O' && ack[1] == (byte)'K';
+            }
+        }
+        catch
+        {
+            return false;  // 交不出去就照舊啟動一份新的
+        }
+    }
+
     [STAThread]
     public static void Main(string[] args)
     {
+        if (TrySendToRunningInstance(args)) return;
+
         Application.EnableVisualStyles();
         Application.SetCompatibleTextRenderingDefault(false);
         Application.Run(new SplashForm(args));

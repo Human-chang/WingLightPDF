@@ -22,11 +22,9 @@ if not exist "%PY%" (
 echo 確認打包環境套件...
 "%PY%" -m pip install -q -r requirements.txt pyinstaller || goto :fail
 
-rem 啟動器執行檔不放進原始碼庫，找不到時用 Windows 內建的 C# 編譯器從 assets\launcher.cs 編譯
-if not exist "WingLightPDF.exe" (
-  echo 編譯原生啟動器 WingLightPDF.exe ...
-  "%WINDIR%\Microsoft.NET\Framework64\v4.0.30319\csc.exe" /nologo /target:winexe /win32icon:"assets\app_icon.ico" /out:"WingLightPDF.exe" /r:System.dll,System.Drawing.dll,System.Windows.Forms.dll "assets\launcher.cs" || goto :fail
-)
+rem 啟動器執行檔不放進原始碼庫，每次都用 Windows 內建的 C# 編譯器從 assets\launcher.cs 重新編譯（不到一秒）
+echo 編譯原生啟動器 WingLightPDF.exe ...
+"%WINDIR%\Microsoft.NET\Framework64\v4.0.30319\csc.exe" /nologo /target:winexe /win32icon:"assets\app_icon.ico" /out:"WingLightPDF.exe" /r:System.dll,System.Core.dll,System.Drawing.dll,System.Windows.Forms.dll "assets\launcher.cs" || goto :fail
 
 if /i not "%WHICH%"=="lite" (
   call :build full "WingLightPDF_綠色免安裝版" || goto :fail

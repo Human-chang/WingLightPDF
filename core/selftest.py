@@ -51,6 +51,10 @@ def run_self_test(out_path: str) -> int:
         except Exception:
             steps[name] = {"ok": False, "ms": round((time.perf_counter() - t0) * 1000), "error": traceback.format_exc()}
 
+    def QApplication_instance():
+        from PySide6.QtWidgets import QApplication
+        return QApplication.instance() or QApplication(sys.argv[:1])
+
     def gui():
         from PySide6.QtWidgets import QApplication
         from ui.main_window import PDFMainWindow
@@ -124,8 +128,36 @@ def run_self_test(out_path: str) -> int:
             raise RuntimeError(f"{engine_name} 結果缺少 {missing}：{text}")
         return f"{engine_name}：{text}"
 
+    def single_instance():
+        from core.single_instance import pipe_address, send_files, start_server
+        from ui.main_window import PDFMainWindow
+
+        address = f"{pipe_address()}-selftest-{os.getpid()}"
+        received = []
+        if not start_server(address, received.extend):
+            raise RuntimeError("無法建立具名管道")
+        if not send_files(address, [pdf_path], timeout=5) or received != [pdf_path]:
+            raise RuntimeError(f"管道傳送失敗，收到 {received}")
+
+        second = os.path.join(tmp_dir, "selftest_2.pdf")
+        _make_sample_pdf(second)
+        ctx["app"] = QApplication_instance()
+        win = PDFMainWindow(initial_pdf_path=pdf_path)
+        win.show()
+        PDFMainWindow.open_external_files([second, pdf_path])
+        ctx["app"].processEvents()
+        tabs = win.doc_tabs.count()
+        current = os.path.basename(win.engine.file_path or "")
+        for i in range(tabs):
+            win.get_doc_tab(i).engine.is_modified = False
+        win.close()
+        if tabs != 2 or current != "selftest.pdf":
+            raise RuntimeError(f"分頁數 {tabs}、目前分頁 {current}，不符預期")
+        return "管道傳送正常；新檔加到分頁，重複的檔案切回原分頁"
+
     step("gui", gui)
     step("lazy_modules", lazy_modules)
+    step("single_instance", single_instance)
     step("text_and_stamp", text_and_stamp)
     step("ocr", ocr)
 

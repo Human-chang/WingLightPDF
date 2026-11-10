@@ -32,6 +32,21 @@ def main() -> None:
         sys.exit(run_self_test(os.path.abspath(out_path)))
 
     t0 = time.perf_counter()
+    cli_files = [
+        os.path.abspath(arg)
+        for arg in sys.argv[1:]
+        if not arg.startswith("-") and os.path.exists(arg) and arg.lower().endswith(".pdf")
+    ]
+
+    # 已經有 WingLightPDF 在執行：把檔案交給它開在分頁，這份直接結束（不必載入 Qt）
+    from core.single_instance import SingleInstance
+    instance = SingleInstance()
+    if not instance.is_primary:
+        if instance.send(cli_files):
+            return
+        instance.claim()  # 主程式剛好在關閉：改由這份接手
+
+    from PySide6.QtCore import QObject, Qt, Signal, Slot
     from PySide6.QtWidgets import QApplication
     from PySide6.QtGui import QIcon
     from ui.main_window import PDFMainWindow
@@ -41,12 +56,6 @@ def main() -> None:
     ico_path = _resolve_icon_path()
     if os.path.exists(ico_path):
         app.setWindowIcon(QIcon(ico_path))
-
-    cli_files = [
-        os.path.abspath(arg)
-        for arg in sys.argv[1:]
-        if not arg.startswith("-") and os.path.exists(arg) and arg.lower().endswith(".pdf")
-    ]
 
     startup_ms = (time.perf_counter() - t0) * 1000.0
 
@@ -65,6 +74,22 @@ def main() -> None:
                 startup_ms=startup_ms if i == 0 else None,
             )
             win.show()
+
+    if instance.is_primary:
+        class _ExternalOpenBridge(QObject):
+            """背景執行緒收到的檔案，排進主執行緒再開啟。"""
+            files_received = Signal(list)
+
+            def __init__(self) -> None:
+                super().__init__()
+                self.files_received.connect(self._open, Qt.ConnectionType.QueuedConnection)
+
+            @Slot(list)
+            def _open(self, files) -> None:
+                PDFMainWindow.open_external_files(files)
+
+        bridge = _ExternalOpenBridge()
+        instance.serve(bridge.files_received.emit)
 
     sys.exit(app.exec())
 

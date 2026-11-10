@@ -19,7 +19,7 @@ import json
 from typing import List, Optional, Tuple
 import fitz
 
-from PySide6.QtCore import Qt, QSize, QPoint, QRect, QMimeData, QByteArray, QUrl
+from PySide6.QtCore import Qt, QSize, QPoint, QRect, QMimeData, QByteArray, QUrl, QEvent
 from PySide6.QtGui import (
     QAction,
     QActionGroup,
@@ -313,6 +313,8 @@ class PDFMainWindow(QMainWindow):
     # 全域偏好：是否將多份 PDF 顯示在同一個程式視窗的分頁下（預設開啟）
     multi_tab_mode: bool = True
     _tab_drag_adopted: bool = False
+    # 最後一個被使用者點選的視窗：從檔案總管再開 PDF 時加到這裡
+    _last_active: Optional["PDFMainWindow"] = None
 
     def __init__(
         self,
@@ -1387,6 +1389,58 @@ class PDFMainWindow(QMainWindow):
             self.load_pdf_file(path)
         self._refresh_tab_titles()
         return tab
+
+    # -------------------- 從其他啟動要求轉來的檔案（單一執行個體） --------------------
+
+    def changeEvent(self, event) -> None:
+        if event.type() == QEvent.Type.ActivationChange and self.isActiveWindow():
+            PDFMainWindow._last_active = self
+        super().changeEvent(event)
+
+    @classmethod
+    def _target_window(cls) -> Optional["PDFMainWindow"]:
+        last = cls._last_active
+        if last in cls._open_windows and last.isVisible():
+            return last
+        visible = [w for w in cls._open_windows if w.isVisible()]
+        return visible[-1] if visible else None
+
+    @classmethod
+    def _find_open_tab(cls, path: str) -> Optional[Tuple["PDFMainWindow", int]]:
+        key = os.path.normcase(os.path.abspath(path))
+        for win in cls._open_windows:
+            for i in range(win.doc_tabs.count()):
+                tab = win.get_doc_tab(i)
+                opened = tab.engine.file_path if tab is not None else None
+                if opened and os.path.normcase(os.path.abspath(opened)) == key:
+                    return win, i
+        return None
+
+    @classmethod
+    def open_external_files(cls, paths: List[str]) -> None:
+        """在檔案總管雙擊 PDF 等其他啟動要求轉來的檔案：開在最後使用的視窗分頁裡。
+        已經開著的檔案直接切到那個分頁；沒有檔案時只把視窗帶到最前面。"""
+        pdfs = [os.path.abspath(p) for p in paths if p.lower().endswith(".pdf") and os.path.isfile(p)]
+        win = cls._target_window()
+        if win is None:
+            win = cls(initial_pdf_path=None)
+            win.show()
+        for p in pdfs:
+            found = cls._find_open_tab(p)
+            if found:
+                win, index = found
+                win.doc_tabs.setCurrentIndex(index)
+            elif win.engine.doc is None and not win.engine.is_modified:
+                win.load_pdf_file(p)
+            elif cls.multi_tab_mode:
+                win.open_pdf_in_new_tab(p)
+            else:
+                win = cls(initial_pdf_path=p)
+                win.show()
+        if win.isMinimized():
+            win.showNormal()
+        win.raise_()
+        win.activateWindow()
 
     def _update_ui_state(self) -> None:
         self._refresh_tab_titles()
