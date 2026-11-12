@@ -46,6 +46,10 @@ def main() -> None:
             return
         instance.claim()  # 主程式剛好在關閉：改由這份接手
 
+    # Qt 在 Windows 預設用 DirectWrite 讀字型清單、找 emoji 的備援字型，字型裝得多的電腦
+    # （實測 1260 個字型家族）光這兩步就要 1.8 秒；GDI 字型引擎只要 0.85 秒，emoji 一樣是彩色的
+    os.environ.setdefault("QT_QPA_PLATFORM", "windows:fontengine=gdi")
+
     from PySide6.QtCore import QObject, Qt, Signal, Slot
     from PySide6.QtWidgets import QApplication
     from PySide6.QtGui import QIcon

@@ -18,8 +18,9 @@ public class SplashForm : Form
     private int elapsedTicks = 0;
     private Icon appIcon;
 
-    public SplashForm(string[] args)
+    public SplashForm(Process core)
     {
+        this.childProc = core;
         this.FormBorderStyle = FormBorderStyle.None;
         this.StartPosition = FormStartPosition.CenterScreen;
         this.Size = new Size(440, 155);
@@ -47,11 +48,12 @@ public class SplashForm : Form
         this.Shown += (s, e) =>
         {
             this.Refresh();
-            StartBackend(args);
+            StartPolling();
         };
     }
 
-    private void StartBackend(string[] args)
+    // 核心程式在建立啟動畫面之前就先啟動，WinForms 準備畫面的時間和 Python 載入重疊
+    public static Process StartCore(string[] args)
     {
         string appDir = AppDomain.CurrentDomain.BaseDirectory;
         string coreBin = Path.Combine(appDir, "WingLightPDF_Core.bin");
@@ -94,21 +96,22 @@ public class SplashForm : Form
         else
         {
             MessageBox.Show("找不到核心程式檔案 (WingLightPDF_Core.bin 或 main.py)！", "WingLightPDF 啟動錯誤", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            Application.Exit();
-            return;
+            return null;
         }
 
         try
         {
-            childProc = Process.Start(psi);
+            return Process.Start(psi);
         }
         catch (Exception ex)
         {
             MessageBox.Show("啟動失敗：" + ex.Message, "WingLightPDF", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            Application.Exit();
-            return;
+            return null;
         }
+    }
 
+    private void StartPolling()
+    {
         pollTimer = new System.Windows.Forms.Timer();
         pollTimer.Interval = 50;
         pollTimer.Tick += (s, e) =>
@@ -280,6 +283,8 @@ public class SplashForm : Form
 
         Application.EnableVisualStyles();
         Application.SetCompatibleTextRenderingDefault(false);
-        Application.Run(new SplashForm(args));
+        Process core = SplashForm.StartCore(args);
+        if (core == null) return;
+        Application.Run(new SplashForm(core));
     }
 }
