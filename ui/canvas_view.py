@@ -57,6 +57,8 @@ from PySide6.QtWidgets import (
     QComboBox,
 )
 
+from ui import theme
+
 
 class InteractiveImageOverlayItem(QGraphicsItem):
     """
@@ -314,8 +316,10 @@ class PDFCanvasView(QGraphicsView):
         self._measure_pdf_points: List[Tuple[float, float]] = []
         self._temp_measure_line: Optional[QGraphicsPathItem] = None
 
-        # 畫布視覺外觀
-        self.setBackgroundBrush(QBrush(QColor(45, 48, 52)))
+        # 畫布視覺外觀：頁面後面的底色跟著深淺色主題，頁面外圍一條 1px 細框
+        self._page_frame_item: Optional[QGraphicsRectItem] = None
+        self._apply_theme()
+        theme.signals().changed.connect(self._apply_theme)
         self.setRenderHints(
             QPainter.RenderHint.Antialiasing
             | QPainter.RenderHint.SmoothPixmapTransform
@@ -382,6 +386,7 @@ class PDFCanvasView(QGraphicsView):
         if self.engine.doc is None or self.engine.page_count == 0:
             self.scene_obj.clear()
             self._page_pixmap_item = None
+            self._page_frame_item = None
             return
 
         h_val = self.horizontalScrollBar().value()
@@ -412,6 +417,10 @@ class PDFCanvasView(QGraphicsView):
 
         self._page_pixmap_item = self.scene_obj.addPixmap(qpix)
         self._page_pixmap_item.setZValue(0)
+        self._page_frame_item = self.scene_obj.addRect(
+            QRectF(-0.5, -0.5, qpix.width() + 1, qpix.height() + 1), QPen(theme.qcolor("line"), 1.0)
+        )
+        self._page_frame_item.setZValue(-1)
         self.scene_obj.setSceneRect(QRectF(0, 0, qpix.width(), qpix.height()))
 
         if self.tool_mode == "select_text":
@@ -420,6 +429,11 @@ class PDFCanvasView(QGraphicsView):
         if preserve_scroll:
             self.horizontalScrollBar().setValue(h_val)
             self.verticalScrollBar().setValue(v_val)
+
+    def _apply_theme(self, _name: str = "") -> None:
+        self.setBackgroundBrush(QBrush(theme.qcolor("canvas")))
+        if self._page_frame_item is not None:
+            self._page_frame_item.setPen(QPen(theme.qcolor("line"), 1.0))
 
     def set_zoom(self, new_zoom: float) -> None:
         clamped = max(0.2, min(6.0, new_zoom))

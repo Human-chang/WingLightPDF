@@ -3,9 +3,10 @@
 打包驗證用自我測試：WingLightPDF_Core.bin --self-test <結果.json>
 不顯示任何視窗（Qt offscreen），用來檢查打包瘦身後是否缺少執行期元件：
 1. 建立主視窗、開啟測試 PDF、搜尋文字（Qt 介面 + PyMuPDF）
-2. 匯入所有按需載入的模組（對話框、列印、預設程式註冊）
-3. 加入中文文字標註、產生印章圖片（系統字型 + Pillow）
-4. 對含繁體中文的測試頁執行 OCR，確認辨識結果為正確的繁體字
+2. 深淺色主題切換，設定寫進暫存資料夾的 WingLightPDF.json（不碰使用者的設定檔）
+3. 匯入所有按需載入的模組（對話框、列印、預設程式註冊）
+4. 加入中文文字標註、產生印章圖片（系統字型 + Pillow）
+5. 對含繁體中文的測試頁執行 OCR，確認辨識結果為正確的繁體字
 結果寫入 JSON 檔；全部通過回傳 0，否則回傳 1。
 """
 
@@ -53,14 +54,21 @@ def run_self_test(out_path: str) -> int:
 
     def QApplication_instance():
         from PySide6.QtWidgets import QApplication
-        return QApplication.instance() or QApplication(sys.argv[:1])
+        app = QApplication.instance()
+        if app is None:
+            from core.settings import Settings
+            from ui import theme
+            app = QApplication(sys.argv[:1])
+            # 設定檔放暫存資料夾，自我測試不讀也不改使用者的設定
+            ctx["settings"] = Settings(base_dir=tmp_dir)
+            theme.init(ctx["settings"])
+        return app
 
     def gui():
-        from PySide6.QtWidgets import QApplication
         from ui.main_window import PDFMainWindow
 
         _make_sample_pdf(pdf_path)
-        ctx["app"] = QApplication.instance() or QApplication(sys.argv[:1])
+        ctx["app"] = QApplication_instance()
         win = PDFMainWindow(initial_pdf_path=pdf_path)
         win.show()
         ctx["app"].processEvents()
@@ -71,6 +79,33 @@ def run_self_test(out_path: str) -> int:
         if pages != 1 or matches < 1:
             raise RuntimeError(f"頁數 {pages}、搜尋結果 {matches}，不符預期")
         return f"開啟 {pages} 頁，搜尋到 {matches} 筆"
+
+    def theme_switch():
+        from core.settings import Settings
+        from ui import theme
+        from ui.main_window import PDFMainWindow
+
+        ctx["app"] = QApplication_instance()
+        win = PDFMainWindow(initial_pdf_path=pdf_path)
+        win.show()
+        start = theme.current()
+        other = "light" if start == "dark" else "dark"
+        results = [start]
+        for name in (other, start):  # 兩次都是真的切換，才會寫進設定檔
+            win.act_dark_theme.setChecked(name == "dark")
+            ctx["app"].processEvents()
+            bg = win.canvas.backgroundBrush().color().name().upper()
+            saved = Settings(base_dir=tmp_dir).theme
+            if theme.current() != name or bg != theme.color("canvas", name) or saved != name:
+                raise RuntimeError(f"切到 {name}：目前 {theme.current()}、畫布 {bg}、設定檔 {saved}")
+            if theme.color("bg", name) not in ctx["app"].styleSheet():
+                raise RuntimeError(f"切到 {name} 後樣式表沒有換")
+            results.append(name)
+        win.engine.is_modified = False
+        win.close()
+        if os.path.dirname(ctx["settings"].path) != tmp_dir:
+            raise RuntimeError(f"設定檔不在暫存資料夾：{ctx['settings'].path}")
+        return f"{' → '.join(results)}，設定存在暫存資料夾"
 
     def lazy_modules():
         import ui.dialogs  # noqa: F401
@@ -156,6 +191,7 @@ def run_self_test(out_path: str) -> int:
         return "管道傳送正常；新檔加到分頁，重複的檔案切回原分頁"
 
     step("gui", gui)
+    step("theme", theme_switch)
     step("lazy_modules", lazy_modules)
     step("single_instance", single_instance)
     step("text_and_stamp", text_and_stamp)

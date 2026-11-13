@@ -47,6 +47,7 @@ from PySide6.QtWidgets import (
 
 from core.pdf_engine import PDFEngine
 from core.lazy_workers import OptimizePDFWorker, OnDemandOCRWorker, FullDocumentOCRWorker
+from ui import theme
 
 
 # =====================================================================
@@ -91,6 +92,7 @@ class MergePDFDialog(QDialog):
         bottom.addStretch()
         btn_run = QPushButton("開始合併並另存新檔...")
         btn_run.setDefault(True)
+        theme.mark_primary(btn_run)
         btn_cancel = QPushButton("關閉")
         btn_run.clicked.connect(self._execute_merge)
         btn_cancel.clicked.connect(self.reject)
@@ -208,6 +210,7 @@ class SplitPDFDialog(QDialog):
         btns.addStretch()
         btn_ok = QPushButton("選擇輸出資料夾並開始拆分...")
         btn_ok.setDefault(True)
+        theme.mark_primary(btn_ok)
         btn_cancel = QPushButton("取消")
         btn_ok.clicked.connect(self._execute_split)
         btn_cancel.clicked.connect(self.reject)
@@ -386,6 +389,7 @@ class OptimizePDFDialog(QDialog):
         btns.addStretch()
         self.btn_start = QPushButton("開始最佳化並另存新檔...")
         self.btn_start.setDefault(True)
+        theme.mark_primary(self.btn_start)
         self.btn_close = QPushButton("關閉")
         self.btn_start.clicked.connect(self._start_optimize)
         self.btn_close.clicked.connect(self.reject)
@@ -471,7 +475,7 @@ class OnDemandOCRDialog(QDialog):
         layout = QVBoxLayout(self)
 
         self.lbl_status = QLabel("準備啟動按需 OCR 引擎...")
-        self.lbl_status.setStyleSheet("font-weight: bold; color: #38bdf8;")
+        self.lbl_status.setProperty("accent", True)
         layout.addWidget(self.lbl_status)
 
         self.progress = QProgressBar()
@@ -589,7 +593,7 @@ class FullDocumentOCRDialog(QDialog):
 
         top_info = QHBoxLayout()
         self.lbl_status = QLabel(f"準備開始全文件辨識（共 {total} 頁）...")
-        self.lbl_status.setStyleSheet("font-weight: bold; color: #38bdf8; font-size: 13px;")
+        self.lbl_status.setProperty("accent", True)
         top_info.addWidget(self.lbl_status, stretch=1)
 
         self.btn_stop = QPushButton("⏹ 停止辨識")
@@ -616,6 +620,7 @@ class FullDocumentOCRDialog(QDialog):
         btn_save = QPushButton("💾 另存全文 .txt...")
         btn_close = QPushButton("完成並返回搜尋")
         btn_close.setDefault(True)
+        theme.mark_primary(btn_close)
 
         btn_copy.clicked.connect(self._copy_all)
         btn_save.clicked.connect(self._save_txt)

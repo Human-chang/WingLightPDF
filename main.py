@@ -61,6 +61,10 @@ def main() -> None:
     if os.path.exists(ico_path):
         app.setWindowIcon(QIcon(ico_path))
 
+    # 深淺色主題與字型：讀 WingLightPDF.json，沒選過就跟著 Windows
+    from ui import theme
+    theme.init()
+
     startup_ms = (time.perf_counter() - t0) * 1000.0
 
     if not cli_files:

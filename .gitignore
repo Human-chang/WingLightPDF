@@ -31,3 +31,7 @@ stamps/*.png
 *.log
 .DS_Store
 Thumbs.db
+
+# 個人設定（主題等），整個資料夾搬走會跟著走
+WingLightPDF.json
+WingLightPDF.json.tmp

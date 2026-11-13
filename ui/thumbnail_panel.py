@@ -61,6 +61,8 @@ from PySide6.QtWidgets import (
     QMessageBox,
 )
 
+from ui import theme
+
 FASTPDF_MIME_TYPE = "application/x-fastpdf-pages"
 
 
@@ -262,11 +264,11 @@ class LazyThumbnailListWidget(QListWidget):
         pix.fill(Qt.GlobalColor.transparent)
         painter = QPainter(pix)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing, True)
-        painter.setBrush(QColor(2, 132, 199, 235))
-        painter.setPen(QPen(QColor("#bae6fd"), 1.5))
+        painter.setBrush(theme.qcolor("accent", 235))
+        painter.setPen(Qt.PenStyle.NoPen)
         painter.drawRoundedRect(QRect(2, 2, 141, 40), 8, 8)
-        painter.setPen(QColor("#ffffff"))
-        painter.setFont(QFont("Microsoft JhengHei", 10, QFont.Weight.Bold))
+        painter.setPen(theme.qcolor("on-accent"))
+        painter.setFont(theme.ui_font("body", bold=True))
         label = f"📄 拖曳 {len(rows)} 頁" if len(rows) > 1 else f"📄 拖曳第 {rows[0] + 1} 頁"
         painter.drawText(QRect(2, 2, 141, 40), Qt.AlignmentFlag.AlignCenter, label)
         painter.end()
@@ -388,18 +390,18 @@ class LazyThumbnailListWidget(QListWidget):
             w = self.viewport().width()
             y = self._drop_line_y
 
-            pen = QPen(QColor("#38bdf8"), 4.0)
+            pen = QPen(theme.qcolor("accent"), 4.0)
             painter.setPen(pen)
             if self._drop_vert_line is not None:
                 vx, vtop, vbot = self._drop_vert_line
                 painter.drawLine(vx, vtop, vx, vbot)
-                painter.setBrush(QColor("#38bdf8"))
+                painter.setBrush(theme.qcolor("accent"))
                 painter.drawEllipse(QPoint(vx, vtop), 5, 5)
                 painter.drawEllipse(QPoint(vx, vbot), 5, 5)
                 center_x = vx
             else:
                 painter.drawLine(8, y, w - 8, y)
-                painter.setBrush(QColor("#38bdf8"))
+                painter.setBrush(theme.qcolor("accent"))
                 painter.drawEllipse(QPoint(10, y), 5, 5)
                 painter.drawEllipse(QPoint(w - 10, y), 5, 5)
                 center_x = w // 2
@@ -411,12 +413,12 @@ class LazyThumbnailListWidget(QListWidget):
             by = max(2, min(y - badge_h // 2, self.viewport().height() - badge_h - 2))
             badge_rect = QRect(bx, by, badge_w, badge_h)
 
-            painter.setPen(QPen(QColor("#bae6fd"), 1.2))
-            painter.setBrush(QColor(2, 132, 199, 240))
+            painter.setPen(Qt.PenStyle.NoPen)
+            painter.setBrush(theme.qcolor("accent", 240))
             painter.drawRoundedRect(badge_rect, 6, 6)
 
-            painter.setPen(QColor("#ffffff"))
-            painter.setFont(QFont("Microsoft JhengHei", 9, QFont.Weight.Bold))
+            painter.setPen(theme.qcolor("on-accent"))
+            painter.setFont(theme.ui_font("caption", bold=True))
             painter.drawText(badge_rect, Qt.AlignmentFlag.AlignCenter, badge_text)
             painter.end()
 
@@ -442,6 +444,7 @@ class LeftNavigationPanel(QWidget):
         self.engine = engine
         self._rendered_thumbs: Set[int] = set()
         self._placeholder_icon = self._create_placeholder_icon()
+        theme.signals().changed.connect(self._on_theme_changed)
         self._suppress_selection_signal = False
         self.setMinimumWidth(154)
 
@@ -450,7 +453,9 @@ class LeftNavigationPanel(QWidget):
 
         self.tabs = QTabWidget()
         self.tabs.setMinimumWidth(150)
-        self.tabs.setUsesScrollButtons(True)
+        self.tabs.setUsesScrollButtons(False)
+        self.tabs.tabBar().setElideMode(Qt.TextElideMode.ElideRight)
+        self.tabs.tabBar().setObjectName("navTabBar")
         layout.addWidget(self.tabs)
 
         # -------- Tab 1: 頁面縮圖 --------
@@ -474,20 +479,21 @@ class LeftNavigationPanel(QWidget):
 
         for b in (self.btn_up, self.btn_down, self.btn_rot_l, self.btn_rot_r, self.btn_del):
             b.setMinimumWidth(24)
-            b.setStyleSheet("padding: 3px 4px; font-size: 12px;")
+            b.setStyleSheet("padding: 3px 4px;")
             btn_bar.addWidget(b)
         t_layout.addLayout(btn_bar)
 
         hint_lbl = QLabel("💡 可拉窄為單欄或拉寬多排並列；支援多頁拖曳與跨檔互拖")
         hint_lbl.setWordWrap(True)
         hint_lbl.setMinimumWidth(130)
-        hint_lbl.setStyleSheet("color: #94a3b8; font-size: 11px; padding: 1px 2px;")
+        hint_lbl.setProperty("muted", True)
+        hint_lbl.setStyleSheet("padding: 1px 2px;")
         t_layout.addWidget(hint_lbl)
 
         self.thumb_list = LazyThumbnailListWidget(self.engine, self)
         self.thumb_list.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         t_layout.addWidget(self.thumb_list)
-        self.tabs.addTab(self.thumb_tab, "📄縮圖")
+        self.tabs.addTab(self.thumb_tab, "縮圖")
 
         # -------- Tab 2: 書籤目錄 (TOC) --------
         self.toc_tab = QWidget()
@@ -505,7 +511,7 @@ class LeftNavigationPanel(QWidget):
         self.btn_toc_del.setToolTip("刪除選取的書籤")
         for b in (self.btn_toc_add, self.btn_toc_sub, self.btn_toc_edit, self.btn_toc_del):
             b.setMinimumWidth(24)
-            b.setStyleSheet("padding: 3px 4px; font-size: 11px;")
+            b.setStyleSheet("padding: 3px 4px;")
             toc_btn_row1.addWidget(b)
         b_layout.addLayout(toc_btn_row1)
 
@@ -515,7 +521,7 @@ class LeftNavigationPanel(QWidget):
         self.btn_toc_import = QPushButton("📥匯入")
         for b in (self.btn_toc_export, self.btn_toc_import):
             b.setMinimumWidth(40)
-            b.setStyleSheet("padding: 3px 4px; font-size: 11px;")
+            b.setStyleSheet("padding: 3px 4px;")
             toc_btn_row2.addWidget(b)
         b_layout.addLayout(toc_btn_row2)
 
@@ -526,7 +532,7 @@ class LeftNavigationPanel(QWidget):
         self.toc_tree.setMinimumWidth(130)
         self.toc_tree.setDragDropMode(QAbstractItemView.DragDropMode.InternalMove)
         b_layout.addWidget(self.toc_tree)
-        self.tabs.addTab(self.toc_tab, "🔖書籤")
+        self.tabs.addTab(self.toc_tab, "書籤")
 
         # -------- Tab 3: 搜尋文字 --------
         self.search_tab = QWidget()
@@ -551,7 +557,7 @@ class LeftNavigationPanel(QWidget):
         self.lbl_search_summary = QLabel("直接搜尋內嵌文字（不自動跑 OCR）")
         self.lbl_search_summary.setWordWrap(True)
         self.lbl_search_summary.setMinimumWidth(130)
-        self.lbl_search_summary.setStyleSheet("color: #94a3b8; font-size: 11px;")
+        self.lbl_search_summary.setProperty("muted", True)
         s_layout.addWidget(self.lbl_search_summary)
 
         self.search_result_list = QListWidget()
@@ -565,7 +571,7 @@ class LeftNavigationPanel(QWidget):
         self.btn_manual_ocr_for_search.clicked.connect(self.full_ocr_requested.emit)
         s_layout.addWidget(self.btn_manual_ocr_for_search)
 
-        self.tabs.addTab(self.search_tab, "🔍搜尋")
+        self.tabs.addTab(self.search_tab, "搜尋")
 
         # 延遲渲染計時器
         self._lazy_timer = QTimer(self)
@@ -597,14 +603,18 @@ class LeftNavigationPanel(QWidget):
 
         self._current_active_page: int = 0
 
+    def _on_theme_changed(self, _name: str) -> None:
+        self._placeholder_icon = self._create_placeholder_icon()
+
     @staticmethod
     def _create_placeholder_icon() -> QIcon:
         pix = QPixmap(120, 160)
-        pix.fill(QColor(55, 58, 64))
+        pix.fill(theme.qcolor("bg"))
         painter = QPainter(pix)
-        painter.setPen(QColor(110, 115, 125))
+        painter.setPen(theme.qcolor("line"))
         painter.drawRect(0, 0, 119, 159)
-        painter.setFont(QFont("Microsoft JhengHei", 9))
+        painter.setPen(theme.qcolor("muted"))
+        painter.setFont(theme.ui_font("caption"))
         painter.drawText(pix.rect(), Qt.AlignmentFlag.AlignCenter, "載入中...")
         painter.end()
         return QIcon(pix)

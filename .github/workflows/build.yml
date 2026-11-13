@@ -61,7 +61,7 @@ jobs:
             Copy-Item "WingLightPDF.exe", "README_使用說明.txt" -Destination "$releaseDir\" -Force
 
             New-Item -ItemType Directory -Force -Path "$releaseDir\assets" | Out-Null
-            Copy-Item "assets\*" -Destination "$releaseDir\assets\" -Force
+            Copy-Item "assets\*" -Destination "$releaseDir\assets\" -Recurse -Force
 
             New-Item -ItemType Directory -Force -Path "$releaseDir\stamps" | Out-Null
             New-Item -ItemType Directory -Force -Path "$releaseDir\source_code\core" | Out-Null

@@ -78,7 +78,8 @@ copy /y "WingLightPDF.exe" "%OUT%\WingLightPDF.exe" >nul
 copy /y "README_使用說明.txt" "%OUT%\README_使用說明.txt" >nul
 
 mkdir "%OUT%\assets" 2>nul
-copy /y "assets\*" "%OUT%\assets\" >nul
+rem 連同 assets\icons 子資料夾一起複製
+xcopy /e /i /y /q "assets" "%OUT%\assets\" >nul
 
 mkdir "%OUT%\stamps" 2>nul
 if exist "stamps\*.png" copy /y "stamps\*.png" "%OUT%\stamps\" >nul

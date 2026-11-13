@@ -8,8 +8,8 @@
   2. 把 A 視窗的分頁拖進 B 視窗 ➔ 自動合併至同一個程式視窗的多分頁下
 - 左側縮圖列支援拉窄成單欄，或拉寬自動多排並列
 - 支援直接拖放 (Drag & Drop) PDF 檔案進視窗開啟或插入
-- 一鍵註冊 Windows PDF 預設開啟關聯 (FastPDF.exe)
-- 高對比深色專業主題配色
+- 一鍵註冊 Windows PDF 預設開啟關聯 (WingLightPDF.exe)
+- 淺色、深色兩套主題（WingLight 設計規範，見 ui/theme.py）
 - 搜尋文字功能：預設直接搜尋內嵌文字與「已手動執行過 OCR 的快取文字」，絕不自動跑 OCR
 """
 
@@ -61,6 +61,7 @@ from core.pdf_engine import PDFEngine, parse_page_range_string
 from ui.canvas_view import PDFCanvasView
 from ui.thumbnail_panel import LeftNavigationPanel
 from ui.stamp_panel import StampBoxPanel
+from ui import theme
 
 FASTPDF_TAB_MIME_TYPE = "application/x-fastpdf-doctab"
 
@@ -129,8 +130,8 @@ class PDFDocumentTab(QWidget):
 class DraggableDocTabBar(QTabBar):
     """
     支援 Chrome 風格拖拉的 PDF 文件分頁列：
-    1. 把分頁往外拖出 ➔ 自動拆出成獨立的 FastPDF 視窗（一個程式拆成兩個程式）
-    2. 把分頁拖到另一個 FastPDF 視窗 ➔ 自動合併進該視窗的分頁列
+    1. 把分頁往外拖出 ➔ 自動拆出成獨立的 WingLightPDF 視窗（一個程式拆成兩個程式）
+    2. 把分頁拖到另一個 WingLightPDF 視窗 ➔ 自動合併進該視窗的分頁列
     3. 拖曳縮圖頁面經過分頁標籤時 ➔ 自動切換至該分頁以便跨分頁插入頁面
     """
 
@@ -231,11 +232,11 @@ class DraggableDocTabBar(QTabBar):
         pix.fill(Qt.GlobalColor.transparent)
         painter = QPainter(pix)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing, True)
-        painter.setBrush(QColor(2, 132, 199, 238))
-        painter.setPen(QPen(QColor("#38bdf8"), 1.6))
+        painter.setBrush(theme.qcolor("accent", 238))
+        painter.setPen(Qt.PenStyle.NoPen)
         painter.drawRoundedRect(QRect(2, 2, 236, 38), 8, 8)
-        painter.setPen(QColor("#ffffff"))
-        painter.setFont(QFont("Microsoft JhengHei", 9, QFont.Weight.Bold))
+        painter.setPen(theme.qcolor("on-accent"))
+        painter.setFont(theme.ui_font("body", bold=True))
         painter.drawText(QRect(10, 2, 220, 38), Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft, title)
         painter.end()
         return pix
@@ -323,6 +324,7 @@ class PDFMainWindow(QMainWindow):
         _create_initial_tab: bool = True,
     ) -> None:
         super().__init__()
+        theme.ensure_applied()
         PDFMainWindow._open_windows.append(self)
         self.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose, True)
 
@@ -346,6 +348,7 @@ class PDFMainWindow(QMainWindow):
         # 建立多 PDF 文件分頁區 (QTabWidget + 自訂可拖拉 DraggableDocTabBar)
         self.doc_tabs = QTabWidget(self)
         self.doc_tab_bar = DraggableDocTabBar(self, self.doc_tabs)
+        self.doc_tab_bar.setObjectName("docTabBar")
         self.doc_tabs.setTabBar(self.doc_tab_bar)
         self.doc_tabs.setDocumentMode(True)
         self.doc_tabs.setMovable(True)
@@ -361,12 +364,12 @@ class PDFMainWindow(QMainWindow):
 
         self.btn_new_tab_corner = QPushButton("➕ 開新分頁")
         self.btn_new_tab_corner.setToolTip("在目前視窗新增一個 PDF 分頁 (Ctrl+T)")
-        self.btn_new_tab_corner.setStyleSheet("padding: 2px 8px; font-size: 11px;")
+        self.btn_new_tab_corner.setFlat(True)
         self.btn_new_tab_corner.clicked.connect(self.action_open_in_new_tab)
 
         self.btn_detach_tab_corner = QPushButton("↗ 拆出為獨立視窗")
-        self.btn_detach_tab_corner.setToolTip("將目前分頁拆出成另一個獨立的 FastPDF 視窗（也可直接用滑鼠把分頁標籤往外拖出！）")
-        self.btn_detach_tab_corner.setStyleSheet("padding: 2px 8px; font-size: 11px;")
+        self.btn_detach_tab_corner.setToolTip("將目前分頁拆出成另一個獨立的 WingLightPDF 視窗（也可直接用滑鼠把分頁標籤往外拖出）")
+        self.btn_detach_tab_corner.setFlat(True)
         self.btn_detach_tab_corner.clicked.connect(self.action_detach_current_tab)
 
         c_layout.addWidget(self.btn_new_tab_corner)
@@ -388,7 +391,6 @@ class PDFMainWindow(QMainWindow):
         self._build_menus_and_toolbars()
         self._build_statusbar(startup_ms)
         self._connect_signals()
-        self._apply_clean_stylesheet()
 
         if initial_pdf_path and os.path.exists(initial_pdf_path):
             self.load_pdf_file(initial_pdf_path)
@@ -747,7 +749,15 @@ class PDFMainWindow(QMainWindow):
         page_menu.addAction("🔢 批次重編頁碼...", lambda: self.action_page_num_watermark(0))
         page_menu.addAction("💧 批次加浮水印...", lambda: self.action_page_num_watermark(1))
 
-        # 4. 進階工具選單
+        # 4. 檢視選單：深淺色主題，第一次開啟跟著 Windows，切換後記在 WingLightPDF.json
+        view_menu = menubar.addMenu("檢視(&V)")
+        self.act_dark_theme = view_menu.addAction("深色主題(&D)")
+        self.act_dark_theme.setCheckable(True)
+        self.act_dark_theme.setChecked(theme.current() == "dark")
+        self.act_dark_theme.toggled.connect(lambda on: theme.set_theme("dark" if on else "light"))
+        theme.signals().changed.connect(self._on_theme_changed)
+
+        # 5. 進階工具選單
         tools_menu = menubar.addMenu("進階工具(&T)")
         tools_menu.addAction("📚 按需文字辨識 (OCR) — 辨識【全部文件所有頁面】", self.action_ocr_full_document)
         tools_menu.addAction("🔍 按需文字辨識 (OCR) — 辨識【當前整頁】", self.action_ocr_current_page)
@@ -804,6 +814,8 @@ class PDFMainWindow(QMainWindow):
         tb_nav.addWidget(btn_prev)
 
         self.spin_page = QSpinBox()
+        self.spin_page.setButtonSymbols(QSpinBox.ButtonSymbols.NoButtons)
+        self.spin_page.setStyleSheet("padding-right: 8px;")  # 沒有微調鈕，不用替它留位置
         self.spin_page.setRange(1, 1)
         self.spin_page.setFixedWidth(66)
         self.spin_page.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -875,7 +887,7 @@ class PDFMainWindow(QMainWindow):
         tb_nav.addSeparator()
 
         btn_default_pdf = QPushButton("📌 設為預設PDF")
-        btn_default_pdf.setToolTip("將 FastPDF.exe 註冊為 Windows 預設 PDF 開啟程式")
+        btn_default_pdf.setToolTip("將 WingLightPDF.exe 註冊為 Windows 預設 PDF 開啟程式")
         btn_default_pdf.clicked.connect(self.action_register_default_pdf_viewer)
         tb_nav.addWidget(btn_default_pdf)
 
@@ -980,6 +992,12 @@ class PDFMainWindow(QMainWindow):
             lambda png_bytes: self.canvas.place_interactive_image(png_bytes, default_pdf_width=115.0)
         )
 
+    def _on_theme_changed(self, name: str) -> None:
+        # 任一視窗切換主題時，其他視窗的勾選狀態跟著更新
+        self.act_dark_theme.blockSignals(True)
+        self.act_dark_theme.setChecked(name == "dark")
+        self.act_dark_theme.blockSignals(False)
+
     def _on_multi_tab_mode_toggled(self, checked: bool) -> None:
         PDFMainWindow.multi_tab_mode = checked
         for win in PDFMainWindow._open_windows:
@@ -997,186 +1015,6 @@ class PDFMainWindow(QMainWindow):
             else "🪟 已切換為【單檔獨立視窗模式】：開啟新檔將在獨立視窗顯示（仍可手動把分頁拖入合併）"
         )
         self.status_bar.showMessage(mode_msg)
-
-    def _apply_clean_stylesheet(self) -> None:
-        self.setStyleSheet(
-            """
-            QMainWindow, QDialog {
-                background-color: #1e2024;
-                color: #f0f4f8;
-            }
-            QMenuBar {
-                background-color: #181a1d;
-                color: #f0f4f8;
-                border-bottom: 1px solid #2e323b;
-                padding: 2px 4px;
-                font-size: 13px;
-            }
-            QMenuBar::item {
-                background-color: transparent;
-                color: #f0f4f8;
-                padding: 5px 10px;
-                border-radius: 4px;
-            }
-            QMenuBar::item:selected {
-                background-color: #323742;
-                color: #ffffff;
-            }
-            QMenu {
-                background-color: #24272d;
-                color: #f0f4f8;
-                border: 1px solid #454c59;
-                padding: 4px;
-                font-size: 13px;
-            }
-            QMenu::item {
-                padding: 6px 24px 6px 14px;
-                border-radius: 4px;
-            }
-            QMenu::item:selected {
-                background-color: #0284c7;
-                color: #ffffff;
-            }
-            QMenu::separator {
-                height: 1px;
-                background: #3a3f4b;
-                margin: 4px 6px;
-            }
-            QToolBar {
-                spacing: 5px;
-                padding: 4px 8px;
-                background-color: #25282e;
-                border-bottom: 1px solid #363b44;
-                color: #f0f4f8;
-            }
-            QToolBar::separator {
-                width: 1px;
-                background-color: #434956;
-                margin: 3px 4px;
-            }
-            QToolButton, QPushButton {
-                background-color: #32363f;
-                color: #f2f5f8;
-                border: 1px solid #49505e;
-                border-radius: 4px;
-                padding: 4px 9px;
-                font-size: 12px;
-                font-weight: 500;
-            }
-            QToolButton:hover, QPushButton:hover {
-                background-color: #3f4551;
-                border-color: #626b7d;
-                color: #ffffff;
-            }
-            QToolButton:pressed, QPushButton:pressed {
-                background-color: #1d4ed8;
-                border-color: #3b82f6;
-                color: #ffffff;
-            }
-            QToolButton:checked, QPushButton:checked {
-                background-color: #0284c7;
-                border: 1px solid #38bdf8;
-                color: #ffffff;
-                font-weight: bold;
-            }
-            QToolButton:disabled, QPushButton:disabled {
-                background-color: #262930;
-                color: #6c7380;
-                border-color: #333740;
-            }
-            QLineEdit, QSpinBox, QDoubleSpinBox, QComboBox {
-                background-color: #181a1f;
-                color: #f8fafc;
-                border: 1px solid #4b5262;
-                border-radius: 4px;
-                padding: 3px 6px;
-                font-size: 12px;
-                selection-background-color: #0284c7;
-                selection-color: #ffffff;
-            }
-            QComboBox::drop-down {
-                border-left: 1px solid #4b5262;
-                width: 20px;
-            }
-            QComboBox QAbstractItemView {
-                background-color: #24272d;
-                color: #f8fafc;
-                selection-background-color: #0284c7;
-                selection-color: #ffffff;
-                border: 1px solid #4b5262;
-            }
-            QLabel {
-                color: #e2e8f0;
-                font-size: 12px;
-            }
-            QTabWidget::pane {
-                border: 1px solid #363b44;
-                background-color: #202328;
-            }
-            QTabBar::tab {
-                background-color: #282c34;
-                color: #cbd5e1;
-                padding: 5px 8px;
-                border: 1px solid #363b44;
-                border-bottom: none;
-                border-top-left-radius: 4px;
-                border-top-right-radius: 4px;
-            }
-            QTabBar::tab:selected {
-                background-color: #0284c7;
-                color: #ffffff;
-                font-weight: bold;
-            }
-            QListWidget, QTreeWidget, QTableWidget, QTextEdit {
-                background-color: #1b1d22;
-                color: #f1f5f9;
-                border: 1px solid #363b44;
-                font-size: 12px;
-            }
-            QListWidget::item {
-                color: #e2e8f0;
-                border-radius: 4px;
-                padding: 4px;
-            }
-            QListWidget::item:selected, QTreeWidget::item:selected {
-                background-color: #0369a1;
-                color: #ffffff;
-                border: 1px solid #38bdf8;
-            }
-            QListWidget::item:hover, QTreeWidget::item:hover {
-                background-color: #2c313c;
-            }
-            QHeaderView::section {
-                background-color: #282c34;
-                color: #f1f5f9;
-                padding: 4px 6px;
-                border: 1px solid #3a3f4b;
-            }
-            QGroupBox {
-                color: #e2e8f0;
-                border: 1px solid #3c424f;
-                border-radius: 5px;
-                margin-top: 8px;
-                padding-top: 10px;
-                font-weight: bold;
-            }
-            QGroupBox::title {
-                subcontrol-origin: margin;
-                left: 10px;
-                padding: 0 4px;
-            }
-            QCheckBox, QRadioButton {
-                color: #e2e8f0;
-                font-size: 12px;
-            }
-            QStatusBar {
-                background-color: #181a1d;
-                color: #e2e8f0;
-                border-top: 1px solid #2e323b;
-                font-size: 12px;
-            }
-            """
-        )
 
     # -------------------- 設為 Windows 預設 PDF 開啟程式 --------------------
 
