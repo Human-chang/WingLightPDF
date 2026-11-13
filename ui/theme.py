@@ -11,6 +11,7 @@ from __future__ import annotations
 import hashlib
 import os
 import re
+import sys
 import tempfile
 from functools import lru_cache
 from typing import Optional
@@ -273,6 +274,9 @@ def qcolor(name: str, alpha: int = 255) -> QColor:
 
 
 def assets_dir() -> str:
+    """線條圖示與標誌：打包後在 _internal 裡的 assets（spec 的 datas），從原始碼執行時在專案的 assets。"""
+    if getattr(sys, "frozen", False):
+        return os.path.join(getattr(sys, "_MEIPASS", os.path.dirname(sys.executable)), "assets")
     from core.settings import app_dir
     return os.path.join(app_dir(), "assets")
 

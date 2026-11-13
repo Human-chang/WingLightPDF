@@ -29,6 +29,16 @@ jobs:
           pip install -r requirements.txt
           pip install pyinstaller
 
+      - name: 3a. Unit Tests (單元測試)
+        run: python -m unittest discover -s tests -t . -v
+
+      - name: 3b. Check Version Matches Tag (標籤要跟 core/version.py 一樣)
+        if: startsWith(github.ref, 'refs/tags/')
+        shell: pwsh
+        run: |
+          $v = (Select-String -Path core\version.py -Pattern 'VERSION = "(.+)"').Matches[0].Groups[1].Value
+          if ("v$v" -ne $env:GITHUB_REF_NAME) { throw "core/version.py 是 $v，標籤是 $env:GITHUB_REF_NAME" }
+
       - name: 4. Build Native Splash Launcher (編譯極速啟動器)
         shell: pwsh
         run: |
@@ -58,7 +68,8 @@ jobs:
               catch { if ($i -eq 14) { throw }; Start-Sleep -Seconds 1 }  # 自我測試剛結束時檔案可能被短暫鎖定
             }
             Move-Item "$releaseDir\WingLightPDF_Core.exe" "$releaseDir\WingLightPDF_Core.bin" -Force
-            Copy-Item "WingLightPDF.exe", "README_使用說明.txt" -Destination "$releaseDir\" -Force
+            Copy-Item "WingLightPDF.exe", "使用說明.txt" -Destination "$releaseDir\" -Force
+            Copy-Item "LICENSE" -Destination "$releaseDir\LICENSE.txt" -Force
 
             New-Item -ItemType Directory -Force -Path "$releaseDir\assets" | Out-Null
             Copy-Item "assets\*" -Destination "$releaseDir\assets\" -Recurse -Force

@@ -4,14 +4,19 @@ cd /d "%~dp0"
 setlocal
 set "ROOT=%~dp0"
 set "PY=%ROOT%.venv\Scripts\python.exe"
-set "WHICH=%~1"
-if "%WHICH%"=="" set "WHICH=all"
+rem 參數：full 或 lite 只打包一版；--no-pause 跑完不停下來（自動化用）
+set "WHICH=all"
+set "NOPAUSE="
+for %%A in (%*) do (
+  if /i "%%~A"=="--no-pause" (set "NOPAUSE=1") else set "WHICH=%%~A"
+)
 
 echo ========================================================
 echo 正在打包 WingLightPDF 綠色免安裝版 (供無 Python 電腦直接解壓使用)
 echo   完整版：WingLightPDF_綠色免安裝版         (OCR：RapidOCR PP-OCRv6)
 echo   輕量版：WingLightPDF_綠色免安裝版_輕量版  (OCR：Windows 內建)
 echo   只打包其中一版：打包綠色免安裝版.bat full  或  打包綠色免安裝版.bat lite
+echo   跑完不停下來：加上 --no-pause
 echo ========================================================
 
 rem 使用專案內的乾淨打包環境 .venv，避免把全域 Python 的其他套件一起打包
@@ -21,6 +26,9 @@ if not exist "%PY%" (
 )
 echo 確認打包環境套件...
 "%PY%" -m pip install -q -r requirements.txt pyinstaller || goto :fail
+
+echo 執行單元測試...
+"%PY%" -m unittest discover -s tests -t . -q || goto :fail
 
 rem 啟動器執行檔不放進原始碼庫，每次都用 Windows 內建的 C# 編譯器從 assets\launcher.cs 重新編譯（不到一秒）
 echo 編譯原生啟動器 WingLightPDF.exe ...
@@ -36,7 +44,7 @@ if /i not "%WHICH%"=="full" (
 echo ========================================================
 echo 打包完成！請直接將資料夾壓縮為 .zip 分享即可！
 echo ========================================================
-pause
+if not defined NOPAUSE pause
 exit /b 0
 
 :build
@@ -75,7 +83,8 @@ rmdir /s /q "build_tmp"
 
 move /y "%OUT%\WingLightPDF_Core.exe" "%OUT%\WingLightPDF_Core.bin" >nul
 copy /y "WingLightPDF.exe" "%OUT%\WingLightPDF.exe" >nul
-copy /y "README_使用說明.txt" "%OUT%\README_使用說明.txt" >nul
+copy /y "使用說明.txt" "%OUT%\使用說明.txt" >nul
+copy /y "LICENSE" "%OUT%\LICENSE.txt" >nul
 
 mkdir "%OUT%\assets" 2>nul
 rem 連同 assets\icons 子資料夾一起複製
@@ -100,5 +109,5 @@ exit /b 0
 echo ========================================================
 echo 打包失敗，請檢查上方錯誤訊息。
 echo ========================================================
-pause
+if not defined NOPAUSE pause
 exit /b 1

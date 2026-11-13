@@ -21,7 +21,11 @@ parser.add_argument("--edition", choices=["full", "lite"], default="full")
 EDITION = parser.parse_args().edition
 
 hiddenimports = []
-datas = []
+# 介面的線條圖示與系列標誌包進 _internal：程式自己找得到，自我測試在組裝資料夾之前就能檢查
+datas = [
+    (os.path.join(ROOT, "assets", "icons", "*.svg"), os.path.join("assets", "icons")),
+    (os.path.join(ROOT, "assets", "logos", "*.svg"), os.path.join("assets", "logos")),
+]
 if EDITION == "full":
     # rapidocr 以 importlib 延遲載入 .main 等子模組，需明確列出；排除未使用的推論後端
     RAPIDOCR_UNUSED_BACKENDS = (".openvino", ".paddle", ".pytorch", ".tensorrt", ".mnn")

@@ -112,12 +112,18 @@ def run_self_test(out_path: str) -> int:
         from ui.about_dialog import AboutDialog
 
         ctx["app"] = QApplication_instance()
+        from ui import theme
+
         dlg = AboutDialog()
         ok = VERSION in dlg.version_label.text() and AUTHOR_URL in dlg.link_label.text() and not dlg.mark.isHidden()
         dlg.close()
         if not ok:
-            raise RuntimeError("關於視窗缺少版本、連結或系列標誌（assets 裡的 logos 資料夾有沒有打包進去？）")
-        return f"版本 {VERSION}、{AUTHOR_URL}、系列標誌"
+            raise RuntimeError(f"關於視窗缺少版本、連結或系列標誌（找的位置：{theme.assets_dir()}）")
+        missing = [n for n in ("folder-open", "save", "search", "check", "warning", "chevron-down")
+                   if theme.icon(n).isNull()]
+        if missing:
+            raise RuntimeError(f"線條圖示載入失敗：{missing}（找的位置：{theme.assets_dir()}）")
+        return f"版本 {VERSION}、{AUTHOR_URL}、系列標誌與線條圖示"
 
     def lazy_modules():
         import ui.dialogs  # noqa: F401

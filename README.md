@@ -1,128 +1,99 @@
 <div align="center">
 
-<img src="assets/logo.png" alt="WingLightPDF Logo" width="148" />
+<img src="assets/logo.png" alt="WingLightPDF 圖示" width="128" />
 
-# ⚡ WingLightPDF — 輕快免安裝PDF檢視與編輯工具
-### WingLightPDF — Feather-Light Portable PDF Viewer & Precision Editor
+# WingLightPDF — 輕快免安裝PDF檢視與編輯工具
 
-**[🇹🇼 繁體中文說明](#-繁體中文介紹-traditional-chinese) ｜ [🇺🇸 English Documentation](#-english-documentation)**
+**看圖紙、抽換頁面、蓋章、截一張清楚的圖，在一個免安裝、完全離線的小工具裡做完**
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Platform: Windows](https://img.shields.io/badge/Platform-Windows%2010%20%2F%2011-0078D6.svg)](#)
-[![Privacy: 100% Offline](https://img.shields.io/badge/Privacy-100%25%20純本機離線%20%2F%20Offline-10b981.svg)](#)
-[![Build: GitHub Actions](https://img.shields.io/badge/Release-GitHub%20Actions%20Automated-22c55e.svg)](../../actions)
+[![Privacy: 100% Offline](https://img.shields.io/badge/Privacy-100%25%20離線-10b981.svg)](#)
+[![Build: GitHub Actions](https://img.shields.io/badge/Release-GitHub%20Actions-22c55e.svg)](../../actions)
 
 </div>
 
----
+![WingLightPDF 畫面（淺色）](docs/screenshot-light.png)
 
-## 🇹🇼 繁體中文介紹 (Traditional Chinese)
+<details>
+<summary>深色主題的畫面</summary>
 
-> **「為什麼只是想快速看個圖紙、抽換兩頁、蓋個章或截張清晰的圖，卻得忍受肥大緩慢的商業軟體，或冒著資安風險把機密公文上傳到來路不明的線上網站？」**
+![WingLightPDF 畫面（深色）](docs/screenshot-dark.png)
 
-**WingLightPDF** 是一款專為**辦公室日常、工程圖紙審閱、公文與合約處理**打造的輕量級開源 PDF 工具。基於 `PySide6` 與 C 語言底層的 `PyMuPDF` 引擎開發，兼具**「如羽翼般輕盈秒開 (Wing-Light)」**與**「直覺強悍的頁面／標註／工程量測功能」**。
+</details>
 
-### 🌟 三大安心承諾
+<sub>畫面中的 PDF 是程式產生的虛構範例（`tools/make_screenshots.py`），不是真實案件。</sub>
 
-1. **📦 免安裝綠色版（Portable）：** 無須安裝 Python 或任何外部環境，從右側 **[Releases](../../releases)** 下載 `.zip` 解壓縮即可直接雙擊 `WingLightPDF.exe` 使用。
-2. **🔒 100% 純本機離線運作：** 程式絕不連網、絕不將任何檔案上傳雲端。處理政府公文、地籍圖、工程設計圖紙與商業機密合約最安心。
-3. **🛡️ 原始碼公開 & 官方雲端自動編譯：** 完整 Python 原始碼 100% 透明可查；Releases 發佈的 `.zip` 免安裝包皆由 **GitHub Actions 官方雲端伺服器**直接從公開原始碼自動編譯打包，杜絕人為加料與後門風險。
+## 為什麼做這個
 
-### 🚀 核心功能亮點
+只是想看一張圖紙、抽換兩頁、蓋個章，或截一張貼進簡報也清楚的圖，商業 PDF 軟體又大又慢；線上工具則要把公文、地籍圖和工程圖紙上傳到別人的伺服器。
 
-| 功能分類 | 實戰細節與解決痛點 |
+WingLightPDF 是道路工程師為自己每天的工作做的：解壓縮就能用，所有處理都在自己的電腦上完成，不連網、不上傳。
+
+## 功能
+
+| 功能 | 說明 |
 | :--- | :--- |
-| **⚡ 極速檢視與護眼模式** | • 毫秒級開啟大檔案、支援 `Ctrl+滾輪` 縮放、手型平移<br>• **深色反相護眼模式**：一鍵轉為黑底白線（類似 CAD 介面），長時間審閱工程圖紙與長文不傷眼 |
-| **🗂️ 多PDF同視窗分頁 & 自由拖拉** | • **同視窗多分頁／多視窗雙棲**：可將多個 PDF 顯示於同一視窗分頁列，0 延遲切換<br>• **已開著時再開 PDF 直接加到分頁**：在檔案總管雙擊 PDF 時交給已開著的程式，約 0.1 秒出現在分頁裡（從頭啟動要 3~5 秒），重複的檔案直接切到原分頁<br>• **像 Chrome 一樣自由拆分與合併**：按住分頁往視窗外拉即可**拆成兩個獨立視窗**；把 A 視窗分頁拖進 B 視窗即可**無損合併為一個視窗** |
-| **📄 彈性縮圖列與跨檔管理** | • 左側縮圖列支援**拉窄成單欄**或**拉寬自動多排並排網格**<br>• 支援 `Ctrl` / `Shift` 多頁滑鼠拖曳排序、**跨分頁／跨視窗互拖頁面插入**，或從檔案總管直接把外部 PDF 拖進縮圖列任意位置合併<br>• 一鍵旋轉、刪除、擷取頁面、多檔合併與拆分、批次頁碼與浮水印 |
-| **✂️ 600 DPI 高解析截圖去背** | • 拒絕螢幕像素模糊截圖！直接從 PDF 底層向量以 **300~600 DPI** 重新渲染局部圖面，貼入 Word／簡報極致銳利<br>• 支援**「一鍵去背透明 PNG」**與**「去背 + 線條加深」**，貼上表格或有色背景不遮擋 |
-| **💮 標註與常用圖章/簽名匣** | • 新增繁體中文文字（自動內嵌系統字型，存檔絕不變亂碼或空白框）、插入圖片<br>• 內建**「核准、已審閱、機密、今日日期章」**，並支援匯入簽名照片**自動白底去背**收藏於 `stamps\` 資料夾隨時取用 |
-| **📐 工程圖紙比例尺量測** | • 支援**兩點比例尺校正**：在圖上已知長度線段點兩下即可完成校正<br>• 直接量測實際距離、多邊形面積，並自動完成 **平方公尺 ($m^2$) 與「台灣坪數」換算**！ |
-| **🔍 雙檔案疊圖差異比對** | • **左右並排同步捲動縮放**：對照前後版文件不再眼花<br>• **紅藍疊圖差異高亮比對**：一秒抓出新版圖紙或合約偷偷修改、位移了哪裡 |
-| **🧠 按需 OCR 文字辨識** | • 預設 `Ctrl+F` 毫秒級搜尋內嵌文字，**絕不在背景自動偷跑 OCR 拖慢電腦**<br>• 遇到掃描檔時，可手動點選「🔍 按需 OCR ▾」辨識局部區域、單頁或整份文件，並可將**可搜尋透明文字層永久寫入 PDF**！ |
+| ⚡ 開得快 | 從點兩下到主視窗出現約 0.8 秒；已經開著時，從檔案總管再開 PDF 約 0.1 秒就加到分頁裡，重複的檔案直接切到原分頁 |
+| 🗂️ 多份 PDF 分頁 | 同一個視窗開好幾份 PDF（Ctrl+T 新分頁、Ctrl+W 關閉）；分頁往外拖可以拆成兩個視窗，拖進別的視窗可以合併，未儲存的修改和復原紀錄都會跟著走 |
+| 📄 縮圖與頁面 | 左側縮圖可以拉窄成單欄或拉寬成多欄；多頁拖曳排序、跨視窗拖頁、從檔案總管拖入 PDF 插入；旋轉、刪除、擷取、插入、合併、拆分、批次頁碼與浮水印 |
+| ✂️ 高解析度截圖 | 圈選區域後從 PDF 重新以 300～600 DPI 畫出，貼進 Word、簡報不會糊；可以去背成透明 PNG，或去背並加深線條 |
+| 💮 文字、圖片與圖章 | 加入繁體中文文字（字型內嵌，換電腦開也不會變亂碼）、圖片；內建核准、已審閱、機密、今日日期章，匯入簽名照片會自動去掉白底 |
+| 📐 比例尺量測 | 在圖上已知長度的線段點兩下完成校正，就能量距離和多邊形面積（平方公尺與坪） |
+| 🔍 雙檔比對 | 左右並排同步捲動縮放，或紅藍疊圖找出新舊版哪裡改了 |
+| 🧠 文字辨識（OCR） | 平常 Ctrl+F 只搜尋 PDF 內的文字，不會在背景偷跑辨識；遇到掃描檔再手動辨識圈選區域、目前頁或整份文件，辨識結果可以寫進 PDF，下次直接搜尋 |
+| 🌗 淺色、深色主題 | 第一次開啟跟著 Windows 的設定，可以在「檢視」選單切換；「護眼反相」把頁面換成黑底白線，看 CAD 圖紙比較不刺眼 |
 
-### 📥 一般使用者下載與使用方式
+## 下載與使用
 
-1. 前往本頁面右側的 **[Releases（發行版本）](../../releases)** 專區，依需求下載其中一個版本（兩版功能相同，只差 OCR 引擎）：
-   | 版本 | 下載大小 | OCR 引擎 | 適合 |
-   |---|---|---|---|
-   | `WingLightPDF-版本-Full.zip`（完整版） | 約 135 MB | RapidOCR PP-OCRv6 | 常需辨識掃描的數字表格、工程規範 |
-   | `WingLightPDF-版本-Lite.zip`（輕量版） | 約 62 MB | Windows 內建 OCR | 一般公文與內文；密集數字表格容易漏字 |
-2. 解壓縮至電腦任意位置，直接雙擊資料夾內的 **`WingLightPDF.exe`** 即可開啟程式。
-3. **📌 設為電腦預設 PDF 軟體（選用）：**
-   - 打開 `WingLightPDF.exe` 後，點擊右上角工具列的 **「📌 設為預設PDF」** 按鈕。
-   - 對電腦裡任意一個 `.pdf` 檔案按右鍵 ➔「開啟檔案」➔「選擇其他應用程式」➔ 選取「**WingLightPDF — 輕快免安裝PDF檢視與編輯工具**」並點選 **「永遠 (Always)」**。
+1. 到右側 **[Releases](../../releases)** 下載其中一個版本。兩個版本功能相同，只差文字辨識的引擎：
 
-### 🛠️ 開發者指南（從原始碼執行）
+   | 版本 | 下載大小 | 解壓縮後 | 文字辨識 | 適合 |
+   |---|---|---|---|---|
+   | `WingLightPDF-版本-Full.zip`（完整版） | 約 135 MB | 約 298 MB | RapidOCR PP-OCRv6 | 常要辨識掃描的數字表格、工程規範 |
+   | `WingLightPDF-版本-Lite.zip`（輕量版） | 約 62 MB | 約 142 MB | Windows 內建 OCR | 一般公文與內文；密集的數字表格容易漏字 |
+
+2. 解壓縮到任意位置，雙擊資料夾裡的 **`WingLightPDF.exe`**。不需要安裝，也不需要系統管理員權限。
+3. 第一次執行時，Windows 可能出現「Windows 已保護您的電腦」：這是因為程式沒有付費的數位簽章，並不是病毒。請按「**其他資訊**」→「**仍要執行**」。執行檔是 GitHub Actions 從公開原始碼自動打包的，打包紀錄都在 [Actions](../../actions) 頁面。
+4. 要設成電腦預設的 PDF 程式：在「檔案」選單按「設為 Windows 預設 PDF 開啟程式」，再照視窗說明在 Windows 裡確認。
+
+設定（目前只有深淺色主題）存在程式旁邊的 `WingLightPDF.json`，整個資料夾搬到別台電腦設定也會跟著走。
+
+輕量版的文字辨識需要 Windows 已安裝「中文(台灣)」的光學字元辨識語言：繁體中文 Windows 通常已內建，沒有的話到「設定 > 時間與語言 > 語言與地區 > 中文(台灣) > 語言選項」安裝。
+
+## 從原始碼執行
 
 ```bash
-# 1. 複製專案
 git clone https://github.com/Human-chang/WingLightPDF.git
 cd WingLightPDF
-
-# 2. 安裝依賴套件
 pip install -r requirements.txt
-
-# 3. 啟動程式
-python main.py
+python main.py                                 # 啟動
+python -m unittest discover -s tests -t .      # 單元測試
+python main.py --self-test 結果.json            # 自我測試（不顯示視窗）
 ```
 
-打包綠色免安裝版：直接執行 `打包綠色免安裝版.bat`。它會在專案內建立乾淨的打包環境 `.venv`，依 `WingLightPDF_Core.spec` 編譯，並在組裝前以 `--self-test` 自動驗證介面、PDF、印章與 OCR 是否正常。
+打包綠色免安裝版：執行 `打包綠色免安裝版.bat`（加 `full` 或 `lite` 只打包一版，加 `--no-pause` 跑完不停下來）。它會建立專用的 `.venv`、跑單元測試、依 `WingLightPDF_Core.spec` 用資料夾模式打包，再對成品跑一次自我測試，沒通過就不組裝。
+
+- `tools/make_brand_assets.py`：從設計規範的 SVG 產生 App 圖示與啟動畫面的螢火蟲
+- `tools/make_screenshots.py`：產生上面的介面截圖
 
 ---
 
-## 🇺🇸 English Documentation
+## English
 
-> **"Why tolerate bloated, sluggish commercial PDF suites—or risk uploading confidential contracts and engineering blueprints to unknown online tools—just to view a document, reorder a few pages, stamp a signature, or take a crisp high-DPI snapshot?"**
+**WingLightPDF** is a portable, fully offline PDF viewer and light editor for Windows, built by a road engineer for daily work with drawings and official documents. Nothing is uploaded; everything runs on your own PC.
 
-**WingLightPDF** is an ultra-fast, 100% offline, portable open-source PDF viewer and lightweight editor built for **daily office workflows, engineering blueprint review, and confidential document processing**. Powered by `PySide6` and the C-based `PyMuPDF` engine, it delivers **instant startup speed** alongside practical page manipulation, CAD-style measurement, and visual diff tools.
+- Tabs for multiple PDFs; drag a tab out to split windows or into another window to merge. Opening a PDF from Explorer while it is running adds a tab in about 0.1 s.
+- Thumbnails that reflow from one column to a grid; drag pages within or across windows; rotate, delete, extract, insert, merge, split, page numbers and watermarks
+- 300–600 DPI region capture with transparent background and line darkening
+- Text, images, stamps and signatures (white background removed automatically)
+- Two-point scale calibration, distance and area measurement (m² and ping)
+- Side-by-side and red/blue overlay comparison of two PDFs
+- On-demand offline OCR (never runs in the background); results can be embedded as a searchable text layer
+- Light and dark themes following Windows, plus an eye-care invert mode for drawings
 
-### 🌟 Three Core Guarantees
+Download a zip from **[Releases](../../releases)** (Full: bundled PP-OCRv6 OCR; Lite: Windows OCR), extract it anywhere and run `WingLightPDF.exe`. Windows SmartScreen may warn on first run because the app is not code-signed: choose *More info* → *Run anyway*. Release builds are produced by GitHub Actions from this source.
 
-1. **📦 True Portable App:** No Python installation or admin rights required. Download the `.zip` archive from **[Releases](../../releases)**, extract anywhere, and run `WingLightPDF.exe`.
-2. **🔒 100% Offline & Private:** Zero network requests, zero telemetry, and zero cloud uploads. Your confidential contracts, legal filings, and engineering drawings never leave your machine.
-3. **🛡️ Auditable Source & Automated Cloud Builds:** Every portable release `.zip` is automatically compiled directly from public source code on clean **GitHub Actions** runners—ensuring complete transparency and safety.
+## License
 
-### 🚀 Key Features
-
-| Category | Capabilities |
-| :--- | :--- |
-| **⚡ Instant Viewing & Eye Care** | • Millisecond startup & rendering, smooth `Ctrl+Wheel` zoom, pan tool<br>• **CAD-Style Dark Invert Mode**: One-click dark background with crisp white lines to reduce eye strain during long blueprint or document reviews |
-| **🗂️ Chrome-Style Multi-Tabs & Tear-Off Windows** | • **Multi-Tab Workspace**: Open multiple PDFs in tabs within a single window with zero-latency switching<br>• **Single Instance**: Opening a PDF from Explorer while WingLightPDF is running adds it as a tab in about 0.1 s instead of a 3–5 s cold start; files already open just switch to their tab<br>• **Drag-Out to Split / Drag-In to Merge**: Drag any tab out of the tab bar to detach it into a separate window, or drag a tab from one window into another to merge them seamlessly |
-| **📄 Responsive Thumbnail Grid & Page Dragging** | • Shrink the left thumbnail panel to a compact **single-column strip**, or widen it to automatically reflow into a **multi-column grid**<br>• Multi-page (`Ctrl` / `Shift`) drag-and-drop reordering, **cross-tab / cross-window page dragging**, and direct external `.pdf` file dropping<br>• Rotate, delete, extract pages, merge multiple PDFs, split documents, and batch-apply page numbers or watermarks |
-| **✂️ 600 DPI Vector Re-Rendered Clipping & Auto-Cutout** | • Say goodbye to blurry screen captures: re-renders selected regions directly from PDF vector data at **300–600 DPI**<br>• One-click **Transparent Background PNG** and **Line Darkening/Enhancement** for crystal-clear pasting into Word or PowerPoint |
-| **💮 Annotations & Stamp / Signature Box** | • Insert CJK/Unicode text (with automatic system font embedding so saved PDFs never show garbled characters) and images<br>• Built-in dynamic date & approval stamps, plus one-click **automatic white-background removal** for imported handwritten signatures |
-| **📐 Engineering Scale Calibration & Measurement** | • **Two-Point Scale Calibration**: Click two points of known distance on a drawing to calibrate scale<br>• Measure real-world distances and polygon areas with automatic conversion between **square meters ($m^2$) and Ping (坪)** |
-| **🔍 Dual-PDF Sync Scroll & Red/Blue Diff Overlay** | • **Side-by-Side Synchronized Pan & Zoom** for comparing document revisions<br>• **Red/Blue Pixel Diff Overlay** that immediately highlights subtle drawing shifts or text edits between two PDF versions |
-| **🧠 On-Demand Offline OCR** | • Instant `Ctrl+F` native text search that **never runs background OCR without your permission**<br>• Manually trigger offline ONNX OCR (`rapidocr` with the bundled PP-OCRv6 model, native Traditional Chinese support) for a selected region, current page, or entire document—and optionally **embed an invisible searchable text layer** permanently into the PDF |
-
-### 📥 Quick Start (For End Users)
-
-1. Go to the **[Releases](../../releases)** section and download one edition (identical features, different OCR engine):
-   - `WingLightPDF-<version>-Full.zip` — Full (~135 MB): bundled RapidOCR PP-OCRv6, accurate on Traditional Chinese and dense numeric tables.
-   - `WingLightPDF-<version>-Lite.zip` — Lite (~62 MB): uses the built-in Windows OCR; fast and accurate on regular text, weaker on dense numeric tables.
-2. Extract the folder anywhere on your Windows 10/11 PC and double-click **`WingLightPDF.exe`**.
-3. **Set as Default PDF Viewer (Optional):** Click the **`📌 設為預設PDF`** button on the top toolbar, then right-click any `.pdf` file ➔ *Open with* ➔ *Choose another app* ➔ select **WingLightPDF** and click **Always**.
-
-### 🛠️ Run from Source (For Developers)
-
-```bash
-# 1. Clone the repository
-git clone https://github.com/Human-chang/WingLightPDF.git
-cd WingLightPDF
-
-# 2. Install dependencies
-pip install -r requirements.txt
-
-# 3. Launch WingLightPDF
-python main.py
-```
-
-To build the portable edition, run `打包綠色免安裝版.bat`. It creates an isolated `.venv`, builds from `WingLightPDF_Core.spec`, and runs a headless `--self-test` (UI, PDF, stamps, OCR) before assembling the folder.
-
----
-
-## 📄 License / 開源授權
-
-Released under the **[MIT License](LICENSE)** — Copyright (c) 2026 **[Human-chang](https://github.com/Human-chang)**.
-If **WingLightPDF** saves you time at work, please consider giving this repository a ⭐ **Star**!
+[MIT](LICENSE) © 2026 [Human-chang](https://github.com/Human-chang)
