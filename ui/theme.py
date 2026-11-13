@@ -17,7 +17,7 @@ from typing import Optional
 
 import shiboken6
 from PySide6.QtCore import QByteArray, QObject, QRectF, Qt, Signal
-from PySide6.QtGui import QColor, QFont, QIcon, QPainter, QPalette, QPixmap
+from PySide6.QtGui import QColor, QFont, QIcon, QImage, QPainter, QPalette, QPixmap
 from PySide6.QtWidgets import QApplication
 
 T = {
@@ -322,6 +322,9 @@ _icon_cache: dict = {}
 _bound: list = []
 
 
+_CLIP_RE = re.compile(r'<clipPath id="([^"]+)">\s*<path d="([^"]+)"')
+
+
 def svg_pixmap(svg: str, px: int) -> QPixmap:
     from PySide6.QtSvg import QSvgRenderer
 
@@ -329,7 +332,24 @@ def svg_pixmap(svg: str, px: int) -> QPixmap:
     pix = QPixmap(px, px)
     pix.fill(Qt.GlobalColor.transparent)
     painter = QPainter(pix)
+    painter.setRenderHint(QPainter.RenderHint.Antialiasing, True)
     renderer.render(painter, QRectF(0, 0, px, px))
+    # Qt 的 SVG 不支援 clip-path：規範的 App 圖示用它把左上角的高光裁在方塊裡，
+    # 方塊外本來就沒有東西，所以把整張圖裁成 clipPath 的形狀就一樣了
+    clip = _CLIP_RE.search(svg)
+    if clip and f'clip-path="url(#{clip.group(1)})"' in svg:
+        view_box = re.search(r'viewBox="([^"]+)"', svg).group(1)
+        mask_svg = (f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="{view_box}">'
+                    f'<path d="{clip.group(2)}" fill="#000000"/></svg>')
+        # 先畫成一整張遮罩再疊上去：DestinationIn 只會改到有畫到的像素，形狀外面要是透明的整張圖才裁得掉
+        mask = QImage(px, px, QImage.Format.Format_ARGB32_Premultiplied)
+        mask.fill(Qt.GlobalColor.transparent)
+        mask_painter = QPainter(mask)
+        mask_painter.setRenderHint(QPainter.RenderHint.Antialiasing, True)
+        QSvgRenderer(QByteArray(mask_svg.encode("utf-8"))).render(mask_painter, QRectF(0, 0, px, px))
+        mask_painter.end()
+        painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_DestinationIn)
+        painter.drawImage(0, 0, mask)
     painter.end()
     return pix
 
