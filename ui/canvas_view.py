@@ -152,8 +152,8 @@ class InteractiveImageOverlayItem(QGraphicsItem):
             return
         if event.button() == Qt.MouseButton.RightButton:
             menu = QMenu()
-            act_commit = menu.addAction("✓ 確定蓋印 / 寫入此頁 (Enter / 雙擊)")
-            act_cancel = menu.addAction("✕ 取消移除 (Esc / Delete)")
+            act_commit = menu.addAction("寫入這一頁（Enter 或雙擊）")
+            act_cancel = menu.addAction("取消（Esc 或 Delete）")
             chosen = menu.exec(event.screenPos())
             if chosen == act_commit:
                 self.on_commit_callback(self)
@@ -278,7 +278,7 @@ class PDFCanvasView(QGraphicsView):
     """
 
     zoom_changed = Signal(float)
-    status_message = Signal(str)
+    status_message = Signal(str, str)  # (文字, 種類：info／ok／warn／error)
     page_modified = Signal()
     request_page_step = Signal(int)  # +1 下一頁, -1 上一頁
     request_ocr_bytes = Signal(bytes)  # 傳送圈選區域的 PNG bytes 執行按需 OCR
@@ -343,35 +343,35 @@ class PDFCanvasView(QGraphicsView):
         if mode == "pan":
             self.setDragMode(QGraphicsView.DragMode.ScrollHandDrag)
             self.viewport().setCursor(Qt.CursorShape.OpenHandCursor)
-            self.status_message.emit("模式：瀏覽平移（滾輪翻頁或 Ctrl+滾輪縮放；可拖曳調整圖章位置）")
+            self.status_message.emit("模式：瀏覽平移（滾輪翻頁或 Ctrl+滾輪縮放；可拖曳調整圖章位置）", "info")
         elif mode == "select_text":
             self.setDragMode(QGraphicsView.DragMode.NoDrag)
             self.viewport().setCursor(Qt.CursorShape.IBeamCursor)
             if self.engine.doc is not None:
                 self._cached_words = self.engine.get_page_words(self.current_page_index)
-            self.status_message.emit("模式：選取文字（請在頁面上拖曳框選文字，放開即可複製）")
+            self.status_message.emit("模式：選取文字（請在頁面上拖曳框選文字，放開即可複製）", "info")
         elif mode == "clip_image":
             self.setDragMode(QGraphicsView.DragMode.NoDrag)
             self.viewport().setCursor(Qt.CursorShape.CrossCursor)
-            self.status_message.emit("模式：圈選複製圖面（拖曳框選區域，放開後可選擇標準/一鍵去背/線條加深/區域OCR）")
+            self.status_message.emit("模式：圈選複製圖面（拖曳框選區域，放開後可選擇標準/一鍵去背/線條加深/區域OCR）", "info")
         elif mode == "add_text":
             self.setDragMode(QGraphicsView.DragMode.NoDrag)
             self.viewport().setCursor(Qt.CursorShape.CrossCursor)
-            self.status_message.emit("模式：加入文字（請在頁面上欲插入文字的位置點一下滑鼠左鍵）")
+            self.status_message.emit("模式：加入文字（請在頁面上欲插入文字的位置點一下滑鼠左鍵）", "info")
         elif mode == "measure_scale":
             self.setDragMode(QGraphicsView.DragMode.NoDrag)
             self.viewport().setCursor(Qt.CursorShape.CrossCursor)
-            self.status_message.emit("模式：比例尺校正（請在已知長度的圖面線段兩端各點一下）")
+            self.status_message.emit("模式：比例尺校正（請在已知長度的圖面線段兩端各點一下）", "info")
         elif mode == "measure_dist":
             self.setDragMode(QGraphicsView.DragMode.NoDrag)
             self.viewport().setCursor(Qt.CursorShape.CrossCursor)
             scale_info = self._get_current_scale_label()
-            self.status_message.emit(f"模式：距離量測 [{scale_info}]（請在起點與終點各點一下）")
+            self.status_message.emit(f"模式：距離量測 [{scale_info}]（請在起點與終點各點一下）", "info")
         elif mode == "measure_area":
             self.setDragMode(QGraphicsView.DragMode.NoDrag)
             self.viewport().setCursor(Qt.CursorShape.CrossCursor)
             scale_info = self._get_current_scale_label()
-            self.status_message.emit(f"模式：面積量測 [{scale_info}]（依序點擊多邊形頂點，點右鍵或雙擊完成閉合計算）")
+            self.status_message.emit(f"模式：面積量測 [{scale_info}]（依序點擊多邊形頂點，點右鍵或雙擊完成閉合計算）", "info")
 
         self.tool_mode_changed.emit(mode)
 
@@ -509,7 +509,7 @@ class PDFCanvasView(QGraphicsView):
         )
         self.scene_obj.addItem(item)
         self._pending_image_items.append(item)
-        self.status_message.emit("已放置圖片/圖章預覽框：可拖曳移動、拉右下角縮放，雙擊或按 Enter 即可寫入 PDF！")
+        self.status_message.emit("已放置圖片/圖章預覽框：可拖曳移動、拉右下角縮放，雙擊或按 Enter 即可寫入 PDF！", "info")
 
     def _commit_image_overlay(self, item: InteractiveImageOverlayItem) -> None:
         if self.engine.doc is None:
@@ -531,13 +531,13 @@ class PDFCanvasView(QGraphicsView):
             self._pending_image_items.remove(item)
         self.render_current_page(preserve_scroll=True)
         self.page_modified.emit()
-        self.status_message.emit("✓ 已將圖片/圖章寫入頁面（可按 Ctrl+Z 復原）")
+        self.status_message.emit("已將圖片／圖章寫入頁面（可以按 Ctrl+Z 復原）", "ok")
 
     def _cancel_image_overlay(self, item: InteractiveImageOverlayItem) -> None:
         if item in self._pending_image_items:
             self._pending_image_items.remove(item)
         self.scene_obj.removeItem(item)
-        self.status_message.emit("已取消放置圖片/圖章")
+        self.status_message.emit("已取消放置圖片/圖章", "info")
 
     def commit_all_pending_overlays(self) -> None:
         for item in list(self._pending_image_items):
@@ -737,7 +737,7 @@ class PDFCanvasView(QGraphicsView):
         extracted = self.engine.extract_text_in_rect(self.current_page_index, pdf_rect)
         if not extracted:
             menu = QMenu(self)
-            act_ocr = menu.addAction("此區域無原生文字 → 點此執行【按需 OCR 辨識】")
+            act_ocr = menu.addAction("這個區域沒有文字，改用文字辨識（OCR）")
             chosen = menu.exec(global_pos)
             if chosen == act_ocr:
                 png_bytes = self.engine.render_clip_high_dpi(self.current_page_index, pdf_rect, dpi=300)
@@ -747,20 +747,20 @@ class PDFCanvasView(QGraphicsView):
 
         QGuiApplication.clipboard().setText(extracted)
         preview = extracted.replace("\n", " ")[:45]
-        self.status_message.emit(f"✓ 已複製選取文字 ({len(extracted)} 字)：「{preview}...」")
+        self.status_message.emit(f"已複製選取文字｜{len(extracted):,} 字：「{preview}…」", "ok")
 
     def _finish_clip_selection(self, pdf_rect: fitz.Rect, global_pos) -> None:
         """彈出圈選圖面處理選單：支援標準高畫質複製、一鍵去背、去背+加深線條、按需 OCR、另存 PNG"""
         menu = QMenu(self)
         menu.setTitle("圈選圖面操作")
-        act_std = menu.addAction(f"📋 複製高解析圖面 ({self.clip_dpi} DPI 原色)")
-        act_trans = menu.addAction(f"✨ 一鍵去背複製 (白底轉透明 PNG, {self.clip_dpi} DPI)")
-        act_enhance = menu.addAction(f"🖋️ 一鍵去背 + 線條加深複製 (貼入簡報/Word 最清晰)")
+        act_std = menu.addAction(f"複製高解析圖面（{self.clip_dpi} DPI 原色）")
+        act_trans = menu.addAction(f"去背後複製（白底轉透明 PNG，{self.clip_dpi} DPI）")
+        act_enhance = menu.addAction("去背並加深線條後複製（貼到簡報、Word 最清楚）")
         menu.addSeparator()
-        act_ocr = menu.addAction("🔍 對此圈選區域執行 OCR 文字辨識 (選用開啟)")
+        act_ocr = menu.addAction("文字辨識（OCR）這個區域")
         menu.addSeparator()
-        act_save = menu.addAction("💾 另存圈選區域為 PNG 圖片檔...")
-        act_stamp = menu.addAction("📌 將此圈選區域轉為透明圖章貼在頁面上")
+        act_save = menu.addAction("另存為 PNG 圖片…")
+        act_stamp = menu.addAction("轉成透明圖章貼到頁面上")
 
         chosen = menu.exec(global_pos)
         if chosen is None:
@@ -771,21 +771,21 @@ class PDFCanvasView(QGraphicsView):
                 self.current_page_index, pdf_rect, dpi=self.clip_dpi, transparent_bg=False, enhance_lines=False
             )
             self._copy_png_bytes_to_clipboard(png_bytes)
-            self.status_message.emit(f"✓ 已複製 {self.clip_dpi} DPI 高解析圖面至剪貼簿！")
+            self.status_message.emit(f"已複製 {self.clip_dpi} DPI 高解析圖面到剪貼簿", "ok")
 
         elif chosen == act_trans:
             png_bytes = self.engine.render_clip_high_dpi(
                 self.current_page_index, pdf_rect, dpi=self.clip_dpi, transparent_bg=True, enhance_lines=False
             )
             self._copy_png_bytes_to_clipboard(png_bytes)
-            self.status_message.emit("✓ 已複製【一鍵去背透明背景 PNG】至剪貼簿！")
+            self.status_message.emit("已複製去背的透明 PNG 到剪貼簿", "ok")
 
         elif chosen == act_enhance:
             png_bytes = self.engine.render_clip_high_dpi(
                 self.current_page_index, pdf_rect, dpi=self.clip_dpi, transparent_bg=True, enhance_lines=True
             )
             self._copy_png_bytes_to_clipboard(png_bytes)
-            self.status_message.emit("✓ 已複製【去背透明 + 線條加深強化圖面】至剪貼簿！")
+            self.status_message.emit("已複製去背並加深線條的圖面到剪貼簿", "ok")
 
         elif chosen == act_ocr:
             png_bytes = self.engine.render_clip_high_dpi(
@@ -805,7 +805,7 @@ class PDFCanvasView(QGraphicsView):
                 )
                 with open(path, "wb") as f:
                     f.write(png_bytes)
-                self.status_message.emit(f"✓ 已儲存高解析截圖：{path}")
+                self.status_message.emit(f"已儲存高解析截圖：{path}", "ok")
 
         elif chosen == act_stamp:
             png_bytes = self.engine.render_clip_high_dpi(
@@ -851,7 +851,7 @@ class PDFCanvasView(QGraphicsView):
         )
         self.render_current_page(preserve_scroll=True)
         self.page_modified.emit()
-        self.status_message.emit("✓ 已寫入中文文字標註（可按 Ctrl+Z 復原）")
+        self.status_message.emit("已寫入文字標註（可以按 Ctrl+Z 復原）", "ok")
 
     # -------------------- 比例尺校正與距離/面積量測 --------------------
 
@@ -907,7 +907,8 @@ class PDFCanvasView(QGraphicsView):
                         pts_per_unit = pt_dist / real_len
                         self.engine.page_scales[self.current_page_index] = (pts_per_unit, unit)
                         self.status_message.emit(
-                            f"✓ 已完成第 {self.current_page_index + 1} 頁比例尺校正：1 {unit} = {pts_per_unit:.2f} PDF pt，已自動切換至【距離量測】"
+                            f"第 {self.current_page_index + 1} 頁比例尺校正完成：1 {unit} = {pts_per_unit:.2f} PDF pt，已切換到距離量測",
+                            "ok",
                         )
                         self.set_tool_mode("measure_dist")
                 except ValueError:
@@ -932,7 +933,7 @@ class PDFCanvasView(QGraphicsView):
             txt_item.setZValue(36)
             self._measure_items.append(txt_item)
 
-            self.status_message.emit(f"📏 量測距離：{label}")
+            self.status_message.emit(f"量測距離：{label}", "ok")
             ans = QMessageBox.question(
                 self,
                 "距離量測結果",
@@ -988,7 +989,7 @@ class PDFCanvasView(QGraphicsView):
             ping_str = f" ({m2:.2f} m² / 約 {m2 * 0.3025:.2f} 坪)"
 
         label = f"面積: {real_area:.2f} {unit}²{ping_str} | 周長: {real_perim:.2f} {unit}"
-        self.status_message.emit(f"📐 {label}")
+        self.status_message.emit(label, "ok")
 
         ans = QMessageBox.question(
             self,

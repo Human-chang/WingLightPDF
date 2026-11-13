@@ -1,15 +1,15 @@
 # -*- coding: utf-8 -*-
 """
 左側導覽與管理面板 (LeftNavigationPanel)：
-Tab 1 - 📄 頁面縮圖：
+Tab 1 - 頁面縮圖：
   - 採用「可視範圍延遲載入 (Viewport Lazy Rendering)」，開啟千頁大檔也瞬間完成不卡頓
   - 支援三種拖放模式：
     1. 【同檔案內單頁/多頁拖曳排序】：按住 Ctrl 或 Shift 多選頁面後上下拖曳，顯示亮藍色插入線改變頁序
     2. 【跨視窗 / 跨檔案拖曳頁面】：從 A 視窗縮圖列選取單頁或多頁，直接拖過來到 B 視窗的縮圖列（或主畫面）任意位置插入！
     3. 【從電腦資料夾拖入外部 PDF】：直接從檔案總管把一或多個 .pdf 拖進縮圖列的任意兩頁之間插入！
-Tab 2 - 🔖 書籤目錄 (TOC)：
+Tab 2 - 書籤目錄 (TOC)：
   - 點擊跳轉章節、新增/修改/刪除書籤、調整階層、匯出與匯入目錄結構
-Tab 3 - 🔍 搜尋文字：
+Tab 3 - 搜尋文字：
   - 一開始即直接搜尋 PDF 內建文字與「已手動執行過 OCR 的快取文字」，絕不自動跑 OCR
 """
 
@@ -178,7 +178,7 @@ class LazyThumbnailListWidget(QListWidget):
                 modifiers & (Qt.KeyboardModifier.ControlModifier | Qt.KeyboardModifier.ShiftModifier)
             )
 
-            # 若已多選多頁，且直接按左鍵在已選取的某頁上準備拖曳 ➔ 保留多選狀態不清空！
+            # 若已多選多頁，且直接按左鍵在已選取的某頁上準備拖曳：保留多選狀態不清空
             if item is not None and item.isSelected() and not has_mod and len(self.selectedItems()) > 1:
                 self._pressed_on_already_selected = True
                 self._dragged_rows = sorted(set(self.row(it) for it in self.selectedItems()))
@@ -269,7 +269,7 @@ class LazyThumbnailListWidget(QListWidget):
         painter.drawRoundedRect(QRect(2, 2, 141, 40), 8, 8)
         painter.setPen(theme.qcolor("on-accent"))
         painter.setFont(theme.ui_font("body", bold=True))
-        label = f"📄 拖曳 {len(rows)} 頁" if len(rows) > 1 else f"📄 拖曳第 {rows[0] + 1} 頁"
+        label = f"拖曳 {len(rows)} 頁" if len(rows) > 1 else f"拖曳第 {rows[0] + 1} 頁"
         painter.drawText(QRect(2, 2, 141, 40), Qt.AlignmentFlag.AlignCenter, label)
         painter.end()
         return pix
@@ -315,11 +315,11 @@ class LazyThumbnailListWidget(QListWidget):
                 if is_same:
                     self._drop_badge_text = f"移動 {cnt} 頁至此處"
                 else:
-                    self._drop_badge_text = f"📥 插入跨視窗 {cnt} 頁至此處"
+                    self._drop_badge_text = f"從其他視窗插入 {cnt} 頁到這裡"
             except Exception:
-                self._drop_badge_text = "📥 插入頁面至此處"
+                self._drop_badge_text = "插入頁面到這裡"
         else:
-            self._drop_badge_text = f"📥 插入 {len(pdf_urls)} 個 PDF 檔至此處"
+            self._drop_badge_text = f"插入 {len(pdf_urls)} 個 PDF 檔到這裡"
 
         # 靠近上下邊緣時自動捲動縮圖列
         vbar = self.verticalScrollBar()
@@ -466,16 +466,19 @@ class LeftNavigationPanel(QWidget):
 
         btn_bar = QHBoxLayout()
         btn_bar.setSpacing(2)
-        self.btn_up = QPushButton("▲")
-        self.btn_up.setToolTip("將選取頁面上移 (前移)")
-        self.btn_down = QPushButton("▼")
-        self.btn_down.setToolTip("將選取頁面下移 (後移)")
-        self.btn_rot_l = QPushButton("↺")
-        self.btn_rot_l.setToolTip("向左旋轉 90°")
-        self.btn_rot_r = QPushButton("↻")
-        self.btn_rot_r.setToolTip("向右旋轉 90°")
-        self.btn_del = QPushButton("🗑")
-        self.btn_del.setToolTip("刪除選取頁面")
+        self.btn_up = QPushButton()
+        theme.bind_icon(self.btn_up, "chevron-down", 180)
+        self.btn_up.setToolTip("選取的頁面往前移")
+        self.btn_down = QPushButton()
+        theme.bind_icon(self.btn_down, "chevron-down")
+        self.btn_down.setToolTip("選取的頁面往後移")
+        self.btn_rot_l = QPushButton("左轉")
+        self.btn_rot_l.setToolTip("選取的頁面向左旋轉 90°")
+        self.btn_rot_r = QPushButton("右轉")
+        self.btn_rot_r.setToolTip("選取的頁面向右旋轉 90°")
+        self.btn_del = QPushButton()
+        theme.bind_icon(self.btn_del, "trash")
+        self.btn_del.setToolTip("刪除選取的頁面（可以按 Ctrl+Z 復原）")
 
         for b in (self.btn_up, self.btn_down, self.btn_rot_l, self.btn_rot_r, self.btn_del):
             b.setMinimumWidth(24)
@@ -483,7 +486,7 @@ class LeftNavigationPanel(QWidget):
             btn_bar.addWidget(b)
         t_layout.addLayout(btn_bar)
 
-        hint_lbl = QLabel("💡 可拉窄為單欄或拉寬多排並列；支援多頁拖曳與跨檔互拖")
+        hint_lbl = QLabel("面板可以拉寬成多欄；拖曳縮圖可以調整頁序，或拖到其他視窗")
         hint_lbl.setWordWrap(True)
         hint_lbl.setMinimumWidth(130)
         hint_lbl.setProperty("muted", True)
@@ -505,9 +508,10 @@ class LeftNavigationPanel(QWidget):
         toc_btn_row1.setSpacing(2)
         self.btn_toc_add = QPushButton("+書籤")
         self.btn_toc_sub = QPushButton("+子節")
-        self.btn_toc_edit = QPushButton("✎")
+        self.btn_toc_edit = QPushButton("編輯")
         self.btn_toc_edit.setToolTip("編輯選取的書籤名稱與頁碼")
-        self.btn_toc_del = QPushButton("🗑")
+        self.btn_toc_del = QPushButton()
+        theme.bind_icon(self.btn_toc_del, "trash")
         self.btn_toc_del.setToolTip("刪除選取的書籤")
         for b in (self.btn_toc_add, self.btn_toc_sub, self.btn_toc_edit, self.btn_toc_del):
             b.setMinimumWidth(24)
@@ -517,8 +521,8 @@ class LeftNavigationPanel(QWidget):
 
         toc_btn_row2 = QHBoxLayout()
         toc_btn_row2.setSpacing(2)
-        self.btn_toc_export = QPushButton("📤匯出")
-        self.btn_toc_import = QPushButton("📥匯入")
+        self.btn_toc_export = QPushButton("匯出")
+        self.btn_toc_import = QPushButton("匯入")
         for b in (self.btn_toc_export, self.btn_toc_import):
             b.setMinimumWidth(40)
             b.setStyleSheet("padding: 3px 4px;")
@@ -544,10 +548,11 @@ class LeftNavigationPanel(QWidget):
         s_input_row.setSpacing(2)
         self.txt_panel_search = QLineEdit()
         self.txt_panel_search.setMinimumWidth(70)
-        self.txt_panel_search.setPlaceholderText("搜尋文字...")
+        self.txt_panel_search.setPlaceholderText("搜尋文字")
         self.txt_panel_search.returnPressed.connect(self._trigger_panel_search)
-        self.btn_panel_search = QPushButton("🔍")
-        self.btn_panel_search.setToolTip("執行文字搜尋")
+        self.btn_panel_search = QPushButton()
+        theme.bind_icon(self.btn_panel_search, "search")
+        self.btn_panel_search.setToolTip("搜尋（Enter）")
         self.btn_panel_search.setMinimumWidth(28)
         self.btn_panel_search.clicked.connect(self._trigger_panel_search)
         s_input_row.addWidget(self.txt_panel_search, stretch=1)
@@ -565,9 +570,9 @@ class LeftNavigationPanel(QWidget):
         self.search_result_list.currentRowChanged.connect(self._on_search_item_clicked)
         s_layout.addWidget(self.search_result_list, stretch=1)
 
-        self.btn_manual_ocr_for_search = QPushButton("📚 全文件 OCR 後搜尋")
+        self.btn_manual_ocr_for_search = QPushButton("辨識整份文件後再搜尋")
         self.btn_manual_ocr_for_search.setMinimumWidth(120)
-        self.btn_manual_ocr_for_search.setToolTip("掃描檔查無字？點此手動執行【全文件 OCR】後再搜尋")
+        self.btn_manual_ocr_for_search.setToolTip("掃描檔搜尋不到字時，先用文字辨識（OCR）辨識整份文件")
         self.btn_manual_ocr_for_search.clicked.connect(self.full_ocr_requested.emit)
         s_layout.addWidget(self.btn_manual_ocr_for_search)
 
@@ -645,12 +650,12 @@ class LeftNavigationPanel(QWidget):
 
         if not matches_with_snippets:
             ocr_cnt = len(self.engine.ocr_page_cache) if self.engine else 0
-            hint = f"（目前已手動 OCR {ocr_cnt} 頁）" if ocr_cnt > 0 else "（若為掃描圖檔，可點下方按鈕手動執行 OCR 後再搜尋）"
+            hint = f"（已辨識 {ocr_cnt:,} 頁）" if ocr_cnt > 0 else "。掃描檔可以按下方按鈕先辨識整份文件"
             self.lbl_search_summary.setText(f"找不到「{keyword}」{hint}")
             self.search_result_list.blockSignals(False)
             return
 
-        self.lbl_search_summary.setText(f"✓ 找到 {len(matches_with_snippets)} 筆「{keyword}」結果（點擊跳轉）：")
+        self.lbl_search_summary.setText(f"找到 {len(matches_with_snippets):,} 筆「{keyword}」，點一下跳過去：")
         for idx, (p_idx, _rect, snippet) in enumerate(matches_with_snippets):
             item = QListWidgetItem(f"第 {p_idx + 1} 頁｜{snippet}")
             item.setData(Qt.ItemDataRole.UserRole, idx)
@@ -799,15 +804,15 @@ class LeftNavigationPanel(QWidget):
         count_label = f"選取的 {len(selected)} 頁" if len(selected) > 1 else f"第 {selected[0] + 1} 頁"
 
         menu = QMenu(self)
-        act_rot_r = menu.addAction(f"↻ 向右旋轉 90° ({count_label})")
-        act_rot_l = menu.addAction(f"↺ 向左旋轉 90° ({count_label})")
-        act_rot_180 = menu.addAction(f"🔄 旋轉 180° ({count_label})")
+        act_rot_r = menu.addAction(f"向右旋轉 90°（{count_label}）")
+        act_rot_l = menu.addAction(f"向左旋轉 90°（{count_label}）")
+        act_rot_180 = menu.addAction(f"旋轉 180°（{count_label}）")
         menu.addSeparator()
-        act_ins_blank = menu.addAction(f"📄 在第 {selected[-1] + 1} 頁後方插入空白頁")
-        act_ins_pdf = menu.addAction(f"📥 在第 {selected[-1] + 1} 頁後方插入其他 PDF...")
+        act_ins_blank = menu.addAction(f"在第 {selected[-1] + 1} 頁後面插入空白頁")
+        act_ins_pdf = menu.addAction(f"在第 {selected[-1] + 1} 頁後面插入其他 PDF…")
         menu.addSeparator()
-        act_extract = menu.addAction(f"📤 擷取 {count_label} 另存為新 PDF...")
-        act_delete = menu.addAction(f"🗑 刪除 {count_label}")
+        act_extract = menu.addAction(f"擷取{count_label}另存新檔…")
+        act_delete = menu.addAction(theme.icon("trash"), f"刪除{count_label}")
 
         chosen = menu.exec(self.thumb_list.viewport().mapToGlobal(pos))
         if chosen == act_rot_r:

@@ -105,7 +105,19 @@ def run_self_test(out_path: str) -> int:
         win.close()
         if os.path.dirname(ctx["settings"].path) != tmp_dir:
             raise RuntimeError(f"設定檔不在暫存資料夾：{ctx['settings'].path}")
-        return f"{' → '.join(results)}，設定存在暫存資料夾"
+        return f"{'、'.join(results)}，設定存在暫存資料夾"
+
+    def about():
+        from core.version import AUTHOR_URL, VERSION
+        from ui.about_dialog import AboutDialog
+
+        ctx["app"] = QApplication_instance()
+        dlg = AboutDialog()
+        ok = VERSION in dlg.version_label.text() and AUTHOR_URL in dlg.link_label.text() and not dlg.mark.isHidden()
+        dlg.close()
+        if not ok:
+            raise RuntimeError("關於視窗缺少版本、連結或系列標誌（assets 裡的 logos 資料夾有沒有打包進去？）")
+        return f"版本 {VERSION}、{AUTHOR_URL}、系列標誌"
 
     def lazy_modules():
         import ui.dialogs  # noqa: F401
@@ -192,6 +204,7 @@ def run_self_test(out_path: str) -> int:
 
     step("gui", gui)
     step("theme", theme_switch)
+    step("about", about)
     step("lazy_modules", lazy_modules)
     step("single_instance", single_instance)
     step("text_and_stamp", text_and_stamp)

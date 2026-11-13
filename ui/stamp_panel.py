@@ -30,6 +30,7 @@ from PySide6.QtWidgets import (
     QLabel,
 )
 from core.pdf_engine import generate_stamp_png_bytes
+from ui import theme
 
 
 class StampBoxPanel(QWidget):
@@ -47,15 +48,15 @@ class StampBoxPanel(QWidget):
         layout.setSpacing(8)
 
         # 1. 一鍵快速日期章與公文章
-        quick_group = QGroupBox("⚡ 一鍵公文章 / 今日日期")
+        quick_group = QGroupBox("公文章與日期章")
         q_layout = QVBoxLayout(quick_group)
         self.chk_with_date = QCheckBox("自動帶入今日日期")
         self.chk_with_date.setChecked(True)
         q_layout.addWidget(self.chk_with_date)
 
         row1 = QHBoxLayout()
-        btn_approved = QPushButton("💮 核准")
-        btn_reviewed = QPushButton("💮 已審閱")
+        btn_approved = QPushButton("核准")
+        btn_reviewed = QPushButton("已審閱")
         btn_approved.clicked.connect(lambda: self._emit_builtin_stamp("核 准", (210, 25, 25)))
         btn_reviewed.clicked.connect(lambda: self._emit_builtin_stamp("已審閱", (20, 90, 200)))
         row1.addWidget(btn_approved)
@@ -63,8 +64,8 @@ class StampBoxPanel(QWidget):
         q_layout.addLayout(row1)
 
         row2 = QHBoxLayout()
-        btn_secret = QPushButton("💮 機密文件")
-        btn_date_only = QPushButton("📅 今日日期章")
+        btn_secret = QPushButton("機密文件")
+        btn_date_only = QPushButton("今日日期章")
         btn_secret.clicked.connect(lambda: self._emit_builtin_stamp("機 密", (200, 20, 20)))
         btn_date_only.clicked.connect(self._emit_date_only_stamp)
         row2.addWidget(btn_secret)
@@ -73,7 +74,7 @@ class StampBoxPanel(QWidget):
         layout.addWidget(quick_group)
 
         # 2. 自訂文字印章產生器
-        custom_group = QGroupBox("🖋️ 自訂文字印章")
+        custom_group = QGroupBox("自訂文字印章")
         c_layout = QVBoxLayout(custom_group)
         self.txt_custom = QLineEdit()
         self.txt_custom.setPlaceholderText("輸入印章文字（如：急件、王小明）")
@@ -90,9 +91,9 @@ class StampBoxPanel(QWidget):
         layout.addWidget(custom_group)
 
         # 3. 常用圖片簽名檔 / 印章快速匣
-        lib_group = QGroupBox("📁 常用透明簽名檔 / 圖章匣")
+        lib_group = QGroupBox("常用簽名與圖章")
         l_layout = QVBoxLayout(lib_group)
-        l_layout.addWidget(QLabel("點擊下方圖章即可放到頁面上拖曳定位："))
+        l_layout.addWidget(QLabel("點一下圖章就會放到頁面上，再拖曳到要的位置："))
 
         self.stamp_list = QListWidget()
         self.stamp_list.setIconSize(QSize(120, 64))
@@ -100,8 +101,11 @@ class StampBoxPanel(QWidget):
         l_layout.addWidget(self.stamp_list)
 
         lib_btns = QHBoxLayout()
-        btn_add_img = QPushButton("+ 匯入簽名/圖章")
-        btn_del_img = QPushButton("🗑 移除")
+        btn_add_img = QPushButton("匯入…")
+        btn_add_img.setToolTip("匯入簽名或圖章的照片，白底會自動去掉")
+        theme.bind_icon(btn_add_img, "plus")
+        btn_del_img = QPushButton("移除")
+        theme.bind_icon(btn_del_img, "trash")
         btn_add_img.clicked.connect(self._import_signature_image)
         btn_del_img.clicked.connect(self._delete_selected_stamp)
         lib_btns.addWidget(btn_add_img)

@@ -12,10 +12,12 @@ import hashlib
 import os
 import re
 import tempfile
+from functools import lru_cache
 from typing import Optional
 
-from PySide6.QtCore import QObject, Qt, Signal
-from PySide6.QtGui import QColor, QFont, QPalette
+import shiboken6
+from PySide6.QtCore import QByteArray, QObject, QRectF, Qt, Signal
+from PySide6.QtGui import QColor, QFont, QIcon, QPainter, QPalette, QPixmap
 from PySide6.QtWidgets import QApplication
 
 T = {
@@ -140,12 +142,13 @@ QComboBox::down-arrow { image: url(icon(chevron-down, muted)); width: 14px; heig
 QAbstractSpinBox::up-button, QAbstractSpinBox::down-button {
     subcontrol-origin: border; width: 18px; border: none; background-color: transparent;
 }
-QAbstractSpinBox::up-button { subcontrol-position: top right; margin: 3px 3px 0 0; }
-QAbstractSpinBox::down-button { subcontrol-position: bottom right; margin: 0 3px 3px 0; }
 QAbstractSpinBox::up-button:hover, QAbstractSpinBox::down-button:hover { background-color: @hover; border-radius: 4px; }
 QAbstractSpinBox::up-arrow { image: url(icon(chevron-down, muted, 180)); width: 12px; height: 12px; }
 QAbstractSpinBox::down-arrow { image: url(icon(chevron-down, muted)); width: 12px; height: 12px; }
 QAbstractSpinBox { padding-right: 22px; }
+QSpinBox#pageSpin { padding: 4px 6px; }
+QSpinBox#pageSpin:focus { padding: 3px 5px; }
+QSpinBox#pageSpin::up-button, QSpinBox#pageSpin::down-button { width: 0; margin: 0; }
 QComboBox QAbstractItemView {
     background-color: @panel; color: @text; border: 1px solid @line; padding: 4px; outline: 0;
     selection-background-color: @soft; selection-color: @accent;
@@ -215,7 +218,8 @@ QSplitter::handle { background-color: @bg; }
 /* ---------- StatusBar ---------- */
 QStatusBar { background-color: @chrome; border-top: 1px solid @line; color: @text; font-size: 12px; }
 QStatusBar::item { border: none; }
-QStatusBar QLabel { font-size: 12px; padding: 0 8px; }
+QStatusBar QLabel { font-size: 12px; }
+QStatusBar QLabel[muted="true"] { padding: 0 8px; }
 """
 
 _TOKEN_RE = re.compile(r"@([a-z][a-z-]*)")
@@ -273,11 +277,15 @@ def assets_dir() -> str:
     return os.path.join(app_dir(), "assets")
 
 
+@lru_cache(maxsize=None)
+def _read_icon(name: str) -> str:
+    with open(os.path.join(assets_dir(), "icons", f"{name}.svg"), encoding="utf-8") as f:
+        return f.read()
+
+
 def icon_svg(name: str, hex_color: str, size: int = 16, rotate: int = 0) -> str:
     """規範的線條圖示（assets/icons/<name>.svg）換成指定的筆畫顏色與大小。"""
-    with open(os.path.join(assets_dir(), "icons", f"{name}.svg"), encoding="utf-8") as f:
-        svg = f.read()
-    head, _, body = svg.partition(">")
+    head, _, body = _read_icon(name).partition(">")
     head = _SVG_STROKE_RE.sub(f'stroke="{hex_color}"', head)
     head = re.sub(r'(?<![\w-])width="[^"]*"', f'width="{size}"', head)  # 不能動到 stroke-width
     head = re.sub(r'(?<![\w-])height="[^"]*"', f'height="{size}"', head)
@@ -307,6 +315,61 @@ def stylesheet(theme: str) -> str:
     # 先代入色票再代入圖示路徑：暫存資料夾的路徑裡就算有 @ 也不會被當成色票
     qss = _TOKEN_RE.sub(lambda m: color(m.group(1), theme), QSS)
     return _ICON_RE.sub(lambda m: _icon_file(m.group(1), m.group(2), theme, int(m.group(3) or 0)), qss)
+
+
+_ICON_PX = (16, 32)  # 100% 用 16，150%～200% 縮放時 Qt 從 32 縮小
+_icon_cache: dict = {}
+_bound: list = []
+
+
+def svg_pixmap(svg: str, px: int) -> QPixmap:
+    from PySide6.QtSvg import QSvgRenderer
+
+    renderer = QSvgRenderer(QByteArray(svg.encode("utf-8")))
+    pix = QPixmap(px, px)
+    pix.fill(Qt.GlobalColor.transparent)
+    painter = QPainter(pix)
+    renderer.render(painter, QRectF(0, 0, px, px))
+    painter.end()
+    return pix
+
+
+def icon(name: str, rotate: int = 0, token: str = "muted") -> QIcon:
+    """規範的線條圖示：平常用 token 色（預設 muted）、勾選中 accent、停用 disabled。"""
+    key = (name, rotate, token, _current)
+    cached = _icon_cache.get(key)
+    if cached is not None:
+        return cached
+    result = QIcon()
+    try:
+        for mode, state, tok in (
+            (QIcon.Mode.Normal, QIcon.State.Off, token),
+            (QIcon.Mode.Normal, QIcon.State.On, "accent"),
+            (QIcon.Mode.Disabled, QIcon.State.Off, "disabled"),
+            (QIcon.Mode.Disabled, QIcon.State.On, "disabled"),
+        ):
+            svg = icon_svg(name, color(tok), rotate=rotate)
+            for px in _ICON_PX:
+                result.addPixmap(svg_pixmap(svg, px), mode, state)
+    except OSError:
+        result = QIcon()  # 找不到圖示檔：只顯示文字
+    _icon_cache[key] = result
+    return result
+
+
+def bind_icon(target, name: str, rotate: int = 0) -> None:
+    """設定按鈕或動作的圖示，切換深淺色時自動換成新顏色。"""
+    target.setIcon(icon(name, rotate))
+    _bound.append((target, name, rotate))
+
+
+def _rebind_icons() -> None:
+    alive = []
+    for target, name, rotate in _bound:
+        if shiboken6.isValid(target):
+            target.setIcon(icon(name, rotate))
+            alive.append((target, name, rotate))
+    _bound[:] = alive
 
 
 def ui_font(size: str = "body", bold: bool = False) -> QFont:
@@ -361,6 +424,7 @@ def _apply(theme: str) -> None:
         pass
     app.setPalette(_palette(theme))
     app.setStyleSheet(stylesheet(theme))
+    _rebind_icons()
 
 
 def init(settings=None) -> None:

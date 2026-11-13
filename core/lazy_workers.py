@@ -36,14 +36,14 @@ class OptimizePDFWorker(QThread):
 
     def run(self) -> None:
         try:
-            self.progress_msg.emit("正在載入文件結構...")
+            self.progress_msg.emit("正在讀取文件結構…")
             doc = fitz.open("pdf", self.source_bytes)
 
             if self.level in ("medium", "aggressive"):
                 dpi_target = 150 if self.level == "medium" else 100
                 dpi_threshold = 200 if self.level == "medium" else 140
                 quality = 75 if self.level == "medium" else 60
-                self.progress_msg.emit(f"正在壓縮內嵌圖片 (目標 {dpi_target} DPI, 品質 {quality}%)...")
+                self.progress_msg.emit(f"正在壓縮內嵌圖片（{dpi_target} DPI，品質 {quality}%）…")
                 if hasattr(doc, "rewrite_images"):
                     doc.rewrite_images(
                         dpi_threshold=dpi_threshold,
@@ -57,7 +57,7 @@ class OptimizePDFWorker(QThread):
                         set_to_gray=False,
                     )
 
-            self.progress_msg.emit("正在清理廢棄物件、合併重複資源並壓縮資料流...")
+            self.progress_msg.emit("正在清理沒用到的物件並壓縮資料…")
             if hasattr(doc, "subset_fonts"):
                 try:
                     doc.subset_fonts()
@@ -151,10 +151,10 @@ class OnDemandOCRWorker(QThread):
     def run(self) -> None:
         try:
             if _CACHED_OCR_ENGINE is None:
-                self.status_changed.emit("首次啟用 OCR：正在按需載入輕量辨識引擎...")
+                self.status_changed.emit("第一次使用文字辨識，正在載入辨識引擎…")
             ocr_engine = _get_or_init_ocr_engine()
 
-            self.status_changed.emit("正在進行文字辨識 (OCR)...")
+            self.status_changed.emit("正在辨識文字…")
             import numpy as np
             from PIL import Image
 
@@ -199,7 +199,7 @@ class FullDocumentOCRWorker(QThread):
     def run(self) -> None:
         try:
             if _CACHED_OCR_ENGINE is None:
-                self.status_changed.emit("首次啟用 OCR：正在按需載入輕量辨識引擎...")
+                self.status_changed.emit("第一次使用文字辨識，正在載入辨識引擎…")
             ocr_engine = _get_or_init_ocr_engine()
 
             import numpy as np
@@ -212,10 +212,10 @@ class FullDocumentOCRWorker(QThread):
 
             for p_idx in range(total):
                 if self.isInterruptionRequested():
-                    self.status_changed.emit(f"⏹ 已中止辨識（已完成 {processed} / {total} 頁）")
+                    self.status_changed.emit(f"已停止辨識（完成 {processed:,}／{total:,} 頁）")
                     break
 
-                self.status_changed.emit(f"正在辨識第 {p_idx + 1} / {total} 頁...")
+                self.status_changed.emit(f"正在辨識第 {p_idx + 1:,}／{total:,} 頁…")
                 page = doc[p_idx]
                 pix = page.get_pixmap(matrix=mat, alpha=False)
                 img_np = np.frombuffer(pix.samples, dtype=np.uint8).reshape(pix.height, pix.width, 3)

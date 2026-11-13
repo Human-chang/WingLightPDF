@@ -48,6 +48,7 @@ from PySide6.QtWidgets import (
 from core.pdf_engine import PDFEngine
 from core.lazy_workers import OptimizePDFWorker, OnDemandOCRWorker, FullDocumentOCRWorker
 from ui import theme
+from ui.status_line import StatusLine
 
 
 # =====================================================================
@@ -72,10 +73,12 @@ class MergePDFDialog(QDialog):
         layout.addWidget(self.table)
 
         btn_row = QHBoxLayout()
-        btn_add = QPushButton("+ 新增 PDF 檔案...")
-        btn_up = QPushButton("▲ 上移")
-        btn_down = QPushButton("▼ 下移")
-        btn_remove = QPushButton("🗑 移除選取")
+        btn_add = QPushButton("加入 PDF 檔案…")
+        theme.bind_icon(btn_add, "plus")
+        btn_up = QPushButton("上移")
+        btn_down = QPushButton("下移")
+        btn_remove = QPushButton("移除選取")
+        theme.bind_icon(btn_remove, "trash")
         btn_add.clicked.connect(self._add_files)
         btn_up.clicked.connect(lambda: self._move_row(-1))
         btn_down.clicked.connect(lambda: self._move_row(1))
@@ -90,7 +93,7 @@ class MergePDFDialog(QDialog):
         self.chk_open_after.setChecked(True)
         bottom.addWidget(self.chk_open_after)
         bottom.addStretch()
-        btn_run = QPushButton("開始合併並另存新檔...")
+        btn_run = QPushButton("開始合併並另存新檔…")
         btn_run.setDefault(True)
         theme.mark_primary(btn_run)
         btn_cancel = QPushButton("關閉")
@@ -208,7 +211,7 @@ class SplitPDFDialog(QDialog):
 
         btns = QHBoxLayout()
         btns.addStretch()
-        btn_ok = QPushButton("選擇輸出資料夾並開始拆分...")
+        btn_ok = QPushButton("選擇輸出資料夾並開始拆分…")
         btn_ok.setDefault(True)
         theme.mark_primary(btn_ok)
         btn_cancel = QPushButton("取消")
@@ -290,10 +293,11 @@ class PageNumberWatermarkDialog(QDialog):
         self.chk_clear_old.setChecked(True)
         f1.addRow("", self.chk_clear_old)
 
-        btn_apply_pno = QPushButton("✓ 一鍵為全文件刷上頁碼")
+        btn_apply_pno = QPushButton("為整份文件加上頁碼")
+        theme.mark_primary(btn_apply_pno)
         btn_apply_pno.clicked.connect(self._apply_page_numbers)
         f1.addRow("", btn_apply_pno)
-        self.tabs.addTab(tab_pno, "🔢 批次重編頁碼")
+        self.tabs.addTab(tab_pno, "批次重編頁碼")
 
         # Tab 2: 批次浮水印
         tab_wm = QWidget()
@@ -321,10 +325,11 @@ class PageNumberWatermarkDialog(QDialog):
         self.chk_wm_tiled.setChecked(False)
         f2.addRow("", self.chk_wm_tiled)
 
-        btn_apply_wm = QPushButton("✓ 一鍵為全文件加上浮水印")
+        btn_apply_wm = QPushButton("為整份文件加上浮水印")
+        theme.mark_primary(btn_apply_wm)
         btn_apply_wm.clicked.connect(self._apply_watermark)
         f2.addRow("", btn_apply_wm)
-        self.tabs.addTab(tab_wm, "💧 批次加浮水印")
+        self.tabs.addTab(tab_wm, "批次加浮水印")
 
         self.tabs.setCurrentIndex(initial_tab)
 
@@ -377,17 +382,12 @@ class OptimizePDFDialog(QDialog):
         self.combo_level.setCurrentIndex(1)
         layout.addWidget(self.combo_level)
 
-        self.lbl_status = QLabel("待命中...")
+        self.lbl_status = StatusLine("選好壓縮等級後按「開始最佳化」")
         layout.addWidget(self.lbl_status)
-
-        self.progress = QProgressBar()
-        self.progress.setRange(0, 1)
-        self.progress.setValue(0)
-        layout.addWidget(self.progress)
 
         btns = QHBoxLayout()
         btns.addStretch()
-        self.btn_start = QPushButton("開始最佳化並另存新檔...")
+        self.btn_start = QPushButton("開始最佳化並另存新檔…")
         self.btn_start.setDefault(True)
         theme.mark_primary(self.btn_start)
         self.btn_close = QPushButton("關閉")
@@ -406,7 +406,7 @@ class OptimizePDFDialog(QDialog):
             return
 
         self.btn_start.setEnabled(False)
-        self.progress.setRange(0, 0)
+        self.lbl_status.set_busy("最佳化中…")
         raw_bytes = self.engine.doc.tobytes()
         orig_sz = self.orig_size or len(raw_bytes)
 
@@ -422,8 +422,6 @@ class OptimizePDFDialog(QDialog):
         self.worker.start()
 
     def _on_finished(self, out_path: str, old_sz: int, new_sz: int) -> None:
-        self.progress.setRange(0, 1)
-        self.progress.setValue(1)
         self.btn_start.setEnabled(True)
         ratio = (1.0 - (new_sz / max(1, old_sz))) * 100.0
         msg = (
@@ -433,15 +431,13 @@ class OptimizePDFDialog(QDialog):
             f"減少比例：{ratio:.1f}%\n\n"
             f"儲存位置：{out_path}"
         )
-        self.lbl_status.setText(f"✓ 完成！瘦身 {ratio:.1f}%")
+        self.lbl_status.set_ok(f"完成｜縮小 {ratio:.1f}%")
         QMessageBox.information(self, "最佳化成功", msg)
         self.accept()
 
     def _on_failed(self, err: str) -> None:
-        self.progress.setRange(0, 1)
-        self.progress.setValue(0)
         self.btn_start.setEnabled(True)
-        self.lbl_status.setText("發生錯誤")
+        self.lbl_status.set_error("最佳化失敗，原因見訊息視窗")
         QMessageBox.critical(self, "最佳化失敗", err)
 
 
@@ -474,13 +470,8 @@ class OnDemandOCRDialog(QDialog):
 
         layout = QVBoxLayout(self)
 
-        self.lbl_status = QLabel("準備啟動按需 OCR 引擎...")
-        self.lbl_status.setProperty("accent", True)
+        self.lbl_status = StatusLine("準備文字辨識引擎…", "busy")
         layout.addWidget(self.lbl_status)
-
-        self.progress = QProgressBar()
-        self.progress.setRange(0, 0)
-        layout.addWidget(self.progress)
 
         splitter = QSplitter(Qt.Orientation.Horizontal)
 
@@ -502,15 +493,17 @@ class OnDemandOCRDialog(QDialog):
         r_lay = QVBoxLayout(right_box)
         r_lay.addWidget(QLabel("辨識結果文字（可直接修改、複製或於主視窗搜尋）："))
         self.txt_result = QTextEdit()
-        self.txt_result.setFont(QFont("Microsoft JhengHei", 11))
+        self.txt_result.setFont(theme.ui_font("card-title"))
         r_lay.addWidget(self.txt_result, stretch=1)
         splitter.addWidget(right_box)
 
         layout.addWidget(splitter, stretch=1)
 
         btn_row = QHBoxLayout()
-        btn_copy = QPushButton("📋 複製全部文字")
-        btn_save = QPushButton("💾 另存為 .txt 文字檔...")
+        btn_copy = QPushButton("複製全部文字")
+        theme.bind_icon(btn_copy, "copy")
+        btn_save = QPushButton("另存為 .txt…")
+        theme.bind_icon(btn_save, "save")
         btn_close = QPushButton("關閉")
         btn_copy.clicked.connect(self._copy_all)
         btn_save.clicked.connect(self._save_txt)
@@ -531,8 +524,6 @@ class OnDemandOCRDialog(QDialog):
         self.worker.start()
 
     def _on_ocr_done(self, text: str, details: list) -> None:
-        self.progress.setRange(0, 1)
-        self.progress.setValue(1)
         self.txt_result.setPlainText(text)
 
         # 若為整頁 OCR，將座標與文字存入 engine.ocr_page_cache，立即可供「搜尋文字」找到！
@@ -546,21 +537,19 @@ class OnDemandOCRDialog(QDialog):
                 ys = [pt[1] / scale for pt in box]
                 rect_items.append((fitz.Rect(min(xs), min(ys), max(xs), max(ys)), str(line_txt).strip()))
             self.engine.store_ocr_page_items(self.page_index, rect_items)
-            self.lbl_status.setText(
-                f"✓ 辨識完成（共 {len(details)} 行文字，已加入第 {self.page_index + 1} 頁搜尋索引，可直接搜尋！）"
+            self.lbl_status.set_ok(
+                f"辨識完成｜{len(details):,} 行｜已加入第 {self.page_index + 1:,} 頁的搜尋，可以直接搜尋"
             )
         else:
-            self.lbl_status.setText(f"✓ 辨識完成（共偵測到 {len(details)} 行文字區塊）")
+            self.lbl_status.set_ok(f"辨識完成｜{len(details):,} 行")
 
     def _on_ocr_error(self, err: str) -> None:
-        self.progress.setRange(0, 1)
-        self.progress.setValue(0)
-        self.lbl_status.setText("✕ 辨識失敗")
+        self.lbl_status.set_error("辨識失敗，原因寫在下方")
         self.txt_result.setPlainText(err)
 
     def _copy_all(self) -> None:
         QGuiApplication.clipboard().setText(self.txt_result.toPlainText())
-        self.lbl_status.setText("✓ 已複製辨識文字到系統剪貼簿！")
+        self.lbl_status.set_ok("已複製辨識文字到剪貼簿")
 
     def _save_txt(self) -> None:
         path, _ = QFileDialog.getSaveFileName(self, "另存 OCR 文字", "OCR辨識結果.txt", "文字檔 (*.txt)")
@@ -585,18 +574,18 @@ class FullDocumentOCRDialog(QDialog):
         super().__init__(parent)
         self.engine = engine
         total = self.engine.page_count
-        self.setWindowTitle(f"📚 辨識全部文件所有頁面 (共 {total} 頁) — 按需批次 OCR")
+        self.setWindowTitle(f"文字辨識（OCR）：整份文件，共 {total:,} 頁")
         self.resize(780, 560)
         self.worker: Optional[FullDocumentOCRWorker] = None
 
         layout = QVBoxLayout(self)
 
         top_info = QHBoxLayout()
-        self.lbl_status = QLabel(f"準備開始全文件辨識（共 {total} 頁）...")
-        self.lbl_status.setProperty("accent", True)
+        self.total_pages = total
+        self.lbl_status = StatusLine(f"準備辨識整份文件（共 {total:,} 頁）…", "busy")
         top_info.addWidget(self.lbl_status, stretch=1)
 
-        self.btn_stop = QPushButton("⏹ 停止辨識")
+        self.btn_stop = QPushButton("停止辨識")
         self.btn_stop.clicked.connect(self._stop_ocr)
         top_info.addWidget(self.btn_stop)
         layout.addLayout(top_info)
@@ -604,21 +593,24 @@ class FullDocumentOCRDialog(QDialog):
         self.progress = QProgressBar()
         self.progress.setRange(0, max(1, total))
         self.progress.setValue(0)
+        self.progress.setFormat("第 %v／%m 頁")
         layout.addWidget(self.progress)
 
         layout.addWidget(QLabel("各頁辨識文字結果（辨識期間已同步建立全文搜尋索引，完成後可直接搜尋關鍵字）："))
         self.txt_all = QTextEdit()
-        self.txt_all.setFont(QFont("Microsoft JhengHei", 10))
+        self.txt_all.setFont(theme.ui_font("body"))
         layout.addWidget(self.txt_all, stretch=1)
 
         btn_row = QHBoxLayout()
-        self.btn_embed = QPushButton("✨ 將可搜尋文字層寫入 PDF（存檔後下次打開免 OCR 直接可搜尋）")
+        self.btn_embed = QPushButton("把辨識文字寫入 PDF（存檔後下次不用再辨識就能搜尋）")
         self.btn_embed.setEnabled(False)
         self.btn_embed.clicked.connect(self._embed_into_pdf)
 
-        btn_copy = QPushButton("📋 複製全部文字")
-        btn_save = QPushButton("💾 另存全文 .txt...")
-        btn_close = QPushButton("完成並返回搜尋")
+        btn_copy = QPushButton("複製全部文字")
+        theme.bind_icon(btn_copy, "copy")
+        btn_save = QPushButton("另存為 .txt…")
+        theme.bind_icon(btn_save, "save")
+        btn_close = QPushButton("完成並回到搜尋")
         btn_close.setDefault(True)
         theme.mark_primary(btn_close)
 
@@ -659,30 +651,32 @@ class FullDocumentOCRDialog(QDialog):
         self.btn_embed.setEnabled(True)
 
     def _on_all_completed(self, processed_count: int) -> None:
+        stopped = self.worker is not None and self.worker.isInterruptionRequested()
         self.btn_stop.setEnabled(False)
-        self.lbl_status.setText(
-            f"✓ 全文件 OCR 辨識完成（共處理 {processed_count} 頁）！現在可直接在主視窗輸入關鍵字搜尋全文！"
-        )
+        if stopped:
+            self.lbl_status.set_warn(f"已停止辨識｜完成 {processed_count:,}／{self.total_pages:,} 頁")
+        else:
+            self.lbl_status.set_ok(f"辨識完成｜{processed_count:,} 頁｜回到主視窗就可以搜尋全文")
 
     def _on_failed(self, err: str) -> None:
         self.btn_stop.setEnabled(False)
-        self.lbl_status.setText("✕ 辨識中斷")
+        self.lbl_status.set_error("辨識中斷，原因見訊息視窗")
         QMessageBox.warning(self, "OCR 錯誤", err)
 
     def _embed_into_pdf(self) -> None:
         pages_cnt = self.engine.embed_ocr_cache_into_pdf()
         if pages_cnt > 0:
             self.ocr_text_embedded.emit()
-            self.lbl_status.setText(f"✓ 已將 {pages_cnt} 頁的可搜尋文字層寫入 PDF！（記得按儲存檔案即可永久生效）")
+            self.lbl_status.set_ok(f"已把 {pages_cnt:,} 頁的辨識文字寫入 PDF，記得儲存檔案")
             QMessageBox.information(
                 self,
                 "已寫入可搜尋文字層",
-                f"已成功將 {pages_cnt} 頁的辨識文字嵌入 PDF 底層！\n請在主視窗點擊「💾 儲存檔案」，之後打開此 PDF 就不用再跑 OCR 也能直接搜尋與選取文字。",
+                f"已把 {pages_cnt:,} 頁的辨識文字寫入 PDF。\n回到主視窗按「儲存檔案」後，下次開啟這個 PDF 不用再辨識，就能直接搜尋和選取文字。",
             )
 
     def _copy_all(self) -> None:
         QGuiApplication.clipboard().setText(self.txt_all.toPlainText())
-        self.lbl_status.setText("✓ 已複製全文件辨識文字到系統剪貼簿！")
+        self.lbl_status.set_ok("已複製整份文件的辨識文字到剪貼簿")
 
     def _save_txt(self) -> None:
         path, _ = QFileDialog.getSaveFileName(self, "另存全文件 OCR 文字", "全文件OCR結果.txt", "文字檔 (*.txt)")
@@ -714,9 +708,11 @@ class ComparePDFWindow(QDialog):
         layout = QVBoxLayout(self)
 
         top_bar = QHBoxLayout()
-        self.btn_load_a = QPushButton("📂 載入基準檔 A (舊版)...")
+        self.btn_load_a = QPushButton("載入基準檔 A（舊版）…")
+        theme.bind_icon(self.btn_load_a, "folder-open")
         self.lbl_a = QLabel("未載入 A 檔")
-        self.btn_load_b = QPushButton("📂 載入對照檔 B (新版)...")
+        self.btn_load_b = QPushButton("載入對照檔 B（新版）…")
+        theme.bind_icon(self.btn_load_b, "folder-open")
         self.lbl_b = QLabel("未載入 B 檔")
 
         self.btn_load_a.clicked.connect(self._pick_file_a)
@@ -732,16 +728,16 @@ class ComparePDFWindow(QDialog):
         ctrl_bar.addWidget(QLabel("比對模式："))
         self.combo_mode = QComboBox()
         self.combo_mode.addItems([
-            "🔀 左右並排同步捲動比對（A 左 / B 右）",
-            "🔍 疊圖差異高亮模式（紅＝A獨有刪除｜藍＝B新增修改｜灰＝未變動）",
+            "左右並排同步捲動（A 左／B 右）",
+            "疊圖找差異（紅＝只有 A｜藍＝B 新增或修改｜灰＝沒變）",
         ])
         self.combo_mode.currentIndexChanged.connect(self._refresh_views)
         ctrl_bar.addWidget(self.combo_mode)
 
         ctrl_bar.addSpacing(16)
-        btn_prev = QPushButton("◀ 上一頁")
+        btn_prev = QPushButton("上一頁")
         self.lbl_page = QLabel("第 1 頁")
-        btn_next = QPushButton("下一頁 ▶")
+        btn_next = QPushButton("下一頁")
         btn_prev.clicked.connect(lambda: self._step_page(-1))
         btn_next.clicked.connect(lambda: self._step_page(1))
         ctrl_bar.addWidget(btn_prev)
@@ -749,8 +745,8 @@ class ComparePDFWindow(QDialog):
         ctrl_bar.addWidget(btn_next)
 
         ctrl_bar.addSpacing(16)
-        btn_zoom_out = QPushButton("縮小 -")
-        btn_zoom_in = QPushButton("放大 +")
+        btn_zoom_out = QPushButton("縮小")
+        btn_zoom_in = QPushButton("放大")
         btn_zoom_out.clicked.connect(lambda: self._change_zoom(1 / 1.2))
         btn_zoom_in.clicked.connect(lambda: self._change_zoom(1.2))
         ctrl_bar.addWidget(btn_zoom_out)
