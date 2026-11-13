@@ -557,16 +557,19 @@ class PDFCanvasView(QGraphicsView):
             return
 
         # 一般滾輪：捲動頁面，若已到頂或到底則自動切換上一頁/下一頁（SumatraPDF 流暢翻頁體驗）
+        # 第一頁頂端、最後一頁底端沒有頁可翻，停在原地，不要把捲軸拉到另一端（否則畫面會來回跳）
         vbar = self.verticalScrollBar()
         delta_y = event.angleDelta().y()
         if delta_y < 0 and vbar.value() >= vbar.maximum():
-            self.request_page_step.emit(1)
-            vbar.setValue(vbar.minimum())
+            if self.current_page_index < self.engine.page_count - 1:
+                self.request_page_step.emit(1)
+                vbar.setValue(vbar.minimum())
             event.accept()
             return
         elif delta_y > 0 and vbar.value() <= vbar.minimum():
-            self.request_page_step.emit(-1)
-            vbar.setValue(vbar.maximum())
+            if self.current_page_index > 0:
+                self.request_page_step.emit(-1)
+                vbar.setValue(vbar.maximum())
             event.accept()
             return
 
