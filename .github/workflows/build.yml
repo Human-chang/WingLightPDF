@@ -36,7 +36,7 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/')
         shell: pwsh
         run: |
-          $v = (Select-String -Path core\version.py -Pattern 'VERSION = "(.+)"').Matches[0].Groups[1].Value
+          $v = (Select-String -Path core\version.py -Pattern '^VERSION = "([^"]+)"').Matches[0].Groups[1].Value
           if ("v$v" -ne $env:GITHUB_REF_NAME) { throw "core/version.py 是 $v，標籤是 $env:GITHUB_REF_NAME" }
 
       - name: 4. Build Native Splash Launcher (編譯極速啟動器)
